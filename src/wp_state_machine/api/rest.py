@@ -71,6 +71,51 @@ class AppState:
             self.wp_state = sensoren.derive_state()
             self.last_update = datetime.now(timezone.utc)
 
+    async def update_from_modbus(self, sensor_name: str, value: float) -> None:
+        """
+        Aktualisiert einen einzelnen Sensorwert aus Modbus-Holding-Register.
+
+        Modbus hat Vorrang (primaere Datenquelle) — wird direkt in sensoren
+        geschrieben ohne Ueberschreiben aller anderen Felder.
+        State-Ableitung wird neu berechnet.
+        Thread-safe via asyncio.Lock.
+        """
+        from wp_state_machine.ingest.modbus_slave import SENSOR_FIELD_MAP
+        field = SENSOR_FIELD_MAP.get(sensor_name)
+        if field is None:
+            # Kein direktes Sensoren-Feld (Counter, Soll-Werte etc.) — nur loggen
+            log.debug("Modbus sensor_name=%s value=%s: kein Sensoren-Feld, ignoriere", sensor_name, value)
+            return
+        async with self._lock:
+            # Pydantic-Modell ist immutable — neues Objekt via model_copy
+            updated = self.sensoren.model_copy(
+                update={field: value, "source": "modbus", "timestamp": datetime.now(timezone.utc)}
+            )
+            self.sensoren = updated
+            self.wp_state = updated.derive_state()
+            self.last_update = datetime.now(timezone.utc)
+        log.debug("Modbus update: %s=%s -> WP_STATE=%s", field, value, self.wp_state)
+
+    async def update_coil_from_modbus(self, coil_name: str, value: bool) -> None:
+        """
+        Aktualisiert einen einzelnen Digital-Wert aus Modbus-Coil.
+
+        Thread-safe via asyncio.Lock.
+        """
+        from wp_state_machine.ingest.modbus_slave import COIL_SENSOR_FIELD_MAP
+        field = COIL_SENSOR_FIELD_MAP.get(coil_name)
+        if field is None:
+            log.debug("Modbus coil_name=%s: kein Sensoren-Feld, ignoriere", coil_name)
+            return
+        async with self._lock:
+            updated = self.sensoren.model_copy(
+                update={field: value, "source": "modbus", "timestamp": datetime.now(timezone.utc)}
+            )
+            self.sensoren = updated
+            self.wp_state = updated.derive_state()
+            self.last_update = datetime.now(timezone.utc)
+        log.debug("Modbus coil: %s=%s -> WP_STATE=%s", field, value, self.wp_state)
+
 
 # Singleton fuer den laufenden Server
 _app_state = AppState()
@@ -131,6 +176,8 @@ def create_app(state: Optional[AppState] = None) -> FastAPI:
 
         ok = has_recent_update or _state.wp_state != WPState.UNKNOWN
 
+        from wp_state_machine.ingest.modbus_slave import modbus_health
+
         return HealthStatus(
             ok=ok,
             dry_run=_state.dry_run,
@@ -143,6 +190,10 @@ def create_app(state: Optional[AppState] = None) -> FastAPI:
             modules={
                 "safety_whitelist_count": str(len(get_whitelist_info())),
                 "dry_run": str(_state.dry_run),
+                "modbus_last_update": modbus_health.to_dict().get("last_update") or "never",
+                "modbus_source_ip": modbus_health.to_dict().get("last_source_ip") or "none",
+                "modbus_registers": str(modbus_health.registers_received),
+                "modbus_coils": str(modbus_health.coils_received),
             },
         )
 
