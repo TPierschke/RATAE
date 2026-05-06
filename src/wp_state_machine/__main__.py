@@ -190,9 +190,33 @@ async def main() -> None:
         asyncio.create_task(heartbeat_loop(config, app_state)),
     ]
 
+    # Modbus-Slave (primaere Datenquelle) — parallel zu Poll-Loop
+    if config.modbus_enabled:
+        from wp_state_machine.ingest.modbus_slave import run as modbus_run
+        tasks.append(asyncio.create_task(modbus_run(app_state, config)))
+        log.info(
+            "Modbus-Slave aktiviert auf Port %d (Slave-ID %d)",
+            config.modbus_port,
+            config.modbus_slave_id,
+        )
+    else:
+        log.info("Modbus deaktiviert (modbus_enabled=false)")
+
+    # SIGTERM-Handler fuer graceful shutdown
+    def _sigterm_handler():
+        log.info("SIGTERM empfangen — initiiere Shutdown")
+        for t in tasks:
+            t.cancel()
+
+    try:
+        loop = asyncio.get_event_loop()
+        loop.add_signal_handler(signal.SIGTERM, _sigterm_handler)
+    except NotImplementedError:
+        pass  # Windows
+
     try:
         await asyncio.gather(*tasks)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, asyncio.CancelledError):
         log.info("Shutdown...")
     finally:
         for t in tasks:
