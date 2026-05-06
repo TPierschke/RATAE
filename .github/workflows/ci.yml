@@ -1,0 +1,41 @@
+name: WP State Machine CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-asyncio pytest-cov httpx respx pydantic pydantic-settings fastapi beautifulsoup4 lxml toml
+
+      - name: Run tests
+        env:
+          PYTHONPATH: src
+        run: |
+          pytest tests/ -v --no-header --cov=wp_state_machine --cov-report=term-missing
+
+      - name: Check imports (no CMI calls)
+        env:
+          PYTHONPATH: src
+        run: |
+          python -c "from wp_state_machine.safety import check_write; r = check_write('3E80153125', 1); assert not r.allowed, 'Heizstab muss geblockt sein!'"
+          python -c "from wp_state_machine.safety import check_write; r = check_write('3E9001301C', 3); assert r.allowed, 'Normal-Betriebsart muss erlaubt sein!'"
+          echo "Safety-Whitelist: OK"

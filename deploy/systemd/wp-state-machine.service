@@ -1,0 +1,30 @@
+[Unit]
+Description=WP State Machine — Zentrale Waermepumpen-Steuerung via CMI
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=thp
+WorkingDirectory=/opt/wp-state-machine
+ExecStart=/usr/bin/python3 -m wp_state_machine
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=wp-state-machine
+
+# Sicherheit
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/wp-state-machine
+ProtectHome=read-only
+
+# Env-File (Secrets, NICHT im Repo)
+EnvironmentFile=/opt/wp-state-machine/.env
+
+# PYTHONPATH fuer src/-Layout
+Environment=PYTHONPATH=/opt/wp-state-machine/src
+
+[Install]
+WantedBy=multi-user.target
