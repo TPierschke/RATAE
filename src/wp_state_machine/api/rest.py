@@ -24,9 +24,13 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, AsyncGenerator, Optional
 
+from pathlib import Path
+
 from fastapi import FastAPI, HTTPException, Response
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+
+_STATIC_DIR = Path(__file__).parents[1] / "web" / "static"
 
 from wp_state_machine.core.models import (
     Betriebsart,
@@ -93,6 +97,23 @@ def create_app(state: Optional[AppState] = None) -> FastAPI:
         description="Zentrale Steuerung Waermepumpe via CMI",
         version="0.1",
     )
+
+    # Statische Web-Assets
+    if _STATIC_DIR.exists():
+        app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
+
+    @app.get("/")
+    async def root():
+        """Liefert Web-UI."""
+        from fastapi.responses import HTMLResponse
+        index = _STATIC_DIR / "index.html"
+        if index.exists():
+            return FileResponse(str(index))
+        return HTMLResponse(
+            "<h1>WP State Machine</h1><p>Web-UI nicht gefunden. "
+            f"Erwarteter Pfad: {_STATIC_DIR}</p>",
+            status_code=503,
+        )
 
     # ---------------------------------------------------------------------------
     # Health
