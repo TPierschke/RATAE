@@ -1,0 +1,40 @@
+# Secrets + Config
+.env
+config.toml
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+*.so
+
+# Tests + Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# VS Code
+.vscode/*.log
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Logs + State
+*.log
+*.log.*
+wp_state.json
+wp_alert.txt
+
+# DB dumps
+*.sql.gz
+*.dump
