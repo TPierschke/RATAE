@@ -123,6 +123,86 @@ er liefert ein HTML-Fieldset direkt (kein weiteres AJAX). Das Skript nutzt
 Playwright fuer HTTP-Auth und kuenftige echte SPA-Targets. Rate-Limit: 5s
 zwischen Requests, bei HTTP 429 Abbruch + 60s Pause.
 
+## Modbus-Ingest (primaere Datenquelle)
+
+Das CMI agiert als Modbus-Master und schreibt aktiv via Modbus-TCP an den Mac-Slave.
+Modbus hat Vorrang vor Web-Scraper und JSON-Poller (direkter Push, keine Polling-Latenz).
+
+### CMI-Seite einrichten
+
+Die CMI-Konfiguration erfolgt einmalig mit den Tools:
+
+```bash
+# Analog-Outputs M1..M16 auf Mac-IP mappen
+python3 tools/cmi_bulk_modbus_setup.py
+
+# Digital-Outputs M-1..M-16 mappen
+python3 tools/cmi_bulk_modbus_digital.py
+```
+
+Konfiguration CMI-Seite:
+- Ziel-IP: `192.168.178.3` (Mac)
+- Slave-ID: 1
+- Port: 5020 (Standard; in `config.toml` aenderbar)
+- Analog: FC16 (Write Multiple Registers), Faktor 10, Big-Endian
+- Digital: FC05 (Write Single Coil)
+
+### Mac-Slave
+
+Der Slave startet automatisch beim App-Start wenn `modbus_enabled = true` in `config.toml`:
+
+```toml
+[modbus]
+enabled = true
+port = 5020
+slave_id = 1
+```
+
+Sensor-Offsets fuer spaetere Kalibrierung (erst aktivieren wenn gemessen):
+
+```toml
+[modbus.sensor_offsets]
+vorlauf = -4.0     # Vorlauf-Sensor misst 4 Grad zu hoch
+ruecklauf = -4.0
+```
+
+### Register-Belegung
+
+| Register | Sensor | Typ | Faktor |
+|----------|--------|-----|--------|
+| 0 | Aussentemperatur | int16 | /10 |
+| 1 | Vorlauf | int16 | /10 |
+| 2 | Ruecklauf | int16 | /10 |
+| 3 | Warmwasser | int16 | /10 |
+| 4 | (ungenutzt) | — | — |
+| 5 | TRaum1 | int16 | /10 |
+| 6 | Heissgas | int16 | /10 |
+| 7 | Fluessigkeit | int16 | /10 |
+| 8 | Saugleitung | int16 | /10 |
+| 9-10 | BetrStdVerdichter | uint32 BE | — |
+| 10-11 | SchaltungenVerdichter | uint32 BE | — |
+| 11-12 | BetrStdHeizstabFB | uint32 BE | — |
+| 12-13 | BetrStdHeizstabWW | uint32 BE | — |
+| 13 | MessageFB | uint16 | — |
+| 14 | MessageWW | uint16 | — |
+| 15 | VorlaufSoll | int16 | /10 |
+
+Coils 0..15: Phasenwaechter, Verdichter, ND/HD-Schalter, Pumpen, Ventile, Heizstaebe.
+
+### Deploy auf .10 (Port-Bindung)
+
+Port 5020 benoetigt keine Root-Rechte.  
+Falls spaeter Port 502 (Standard-Modbus) genutzt werden soll:
+`sudo setcap 'cap_net_bind_service=+ep' /opt/homebrew/bin/python3.xx`  
+oder einfacher: CMI weiterhin auf 5020 lassen.
+
+### Debug-Tool
+
+```bash
+# Standalone-Slave zum Testen (zeigt alle CMI-Writes)
+python3 tools/modbus_test_slave.py
+```
+
 ## Sicherheits-Imperative
 
 1. Schreiben nur via menupage.cgi (Browser-Emulation), nie JSON-API-writes.
