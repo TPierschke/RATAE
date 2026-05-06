@@ -32,3 +32,16 @@ alarm_only = true  # kein daily report, nur bei Fehler
 watchdog_poll_interval_seconds = 30
 anomaly_heissgas_threshold_celsius = 35.0
 anomaly_heizstab_threshold_celsius = 50.0
+
+[modbus]
+enabled = true           # Modbus-TCP-Slave aktivieren (primaere Datenquelle)
+port = 5020              # Port auf dem Mac (CMI schreibt aktiv hierher)
+slave_id = 1             # Modbus-Slave-ID (muss mit CMI-Konfiguration uebereinstimmen)
+
+# Sensor-Offsets: werden auf Rohwert addiert (fuer Kalibrierung)
+# Default: leer (kein Offset). Einheit: Grad C fuer Temperaturen.
+# Beispiel (erst aktivieren wenn Sensor kalibriert):
+# [modbus.sensor_offsets]
+# aussen = 0.0
+# vorlauf = -4.0     # Wenn Sensor 4 Grad zu hoch misst
+# ruecklauf = -4.0

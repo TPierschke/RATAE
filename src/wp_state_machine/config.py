@@ -139,6 +139,21 @@ class Config:
         self.telegram_token: str = _get("TELEGRAM_TOKEN", "")
         self.telegram_chat_id: str = _get("TELEGRAM_CHAT_ID", "")
 
+        # Modbus-Slave (primaere Datenquelle)
+        self.modbus_enabled: bool = self._toml.get("modbus", {}).get("enabled", True)
+        self.modbus_port: int = int(
+            _get("MODBUS_PORT", str(self._toml.get("modbus", {}).get("port", 5020)))
+        )
+        self.modbus_slave_id: int = int(
+            self._toml.get("modbus", {}).get("slave_id", 1)
+        )
+        # Sensor-Offsets: werden auf Rohwert addiert (Default 0.0 ueberall)
+        # Konfigurierbar in config.toml unter [modbus.sensor_offsets]
+        raw_offsets = self._toml.get("modbus", {}).get("sensor_offsets", {})
+        self.sensor_offsets: dict[str, float] = {
+            k: float(v) for k, v in raw_offsets.items()
+        }
+
         # Monitoring
         self.watchdog_poll_interval: float = float(
             self._toml.get("monitoring", {}).get("watchdog_poll_interval_seconds", 30)
@@ -189,4 +204,6 @@ class Config:
             "telegram_enabled": self.telegram_enabled,
             "log_level": self.log_level,
             "cmi_poll_interval": self.cmi_poll_interval,
+            "modbus_enabled": self.modbus_enabled,
+            "modbus_port": self.modbus_port,
         }
