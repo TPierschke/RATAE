@@ -158,7 +158,6 @@ async def main() -> None:
     # Postgres verbinden
     if config.postgres_url:
         from wp_state_machine.storage.postgres import PostgresStore
-        from wp_state_machine.storage import schema
 
         store = PostgresStore(config.postgres_url)
         if await store.connect():
