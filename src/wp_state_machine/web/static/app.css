@@ -1,0 +1,150 @@
+/* WP State Machine — Custom Styles (ergaenzend zu Tailwind CDN) */
+
+:root {
+  --color-bg: #0f172a;
+  --color-card: #1e293b;
+  --color-border: #334155;
+  --color-accent: #38bdf8;
+  --color-green: #22c55e;
+  --color-red: #ef4444;
+  --color-yellow: #eab308;
+  --color-gray: #94a3b8;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: #e2e8f0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* DRY-RUN Banner */
+.dry-run-banner {
+  background: linear-gradient(135deg, #7c3aed, #4f46e5);
+  border-bottom: 2px solid #6d28d9;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+/* State Cards */
+.state-card {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  transition: border-color 0.2s ease;
+}
+
+.state-card.active {
+  border-color: var(--color-green);
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.2);
+}
+
+.state-card.alarm {
+  border-color: var(--color-red);
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
+  animation: pulse-alarm 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-alarm {
+  0%, 100% { box-shadow: 0 0 12px rgba(239, 68, 68, 0.3); }
+  50% { box-shadow: 0 0 24px rgba(239, 68, 68, 0.6); }
+}
+
+/* Status Indicator */
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.status-dot.on { background-color: var(--color-green); }
+.status-dot.off { background-color: var(--color-gray); }
+.status-dot.alarm { background-color: var(--color-red); animation: blink 0.8s step-start infinite; }
+.status-dot.unknown { background-color: var(--color-yellow); }
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+/* Temp Value */
+.temp-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.temp-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-gray);
+}
+
+/* Sparkline Container */
+.sparkline-wrap {
+  height: 48px;
+  overflow: hidden;
+}
+
+/* Confirm Dialog */
+.confirm-overlay {
+  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.6);
+}
+
+/* Buttons */
+.btn-primary {
+  background: #0ea5e9;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  touch-action: manipulation;
+}
+.btn-primary:hover { background: #38bdf8; }
+.btn-primary:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
+
+.btn-danger {
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-danger:hover { background: #ef4444; }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-gray);
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.btn-ghost:hover { border-color: #64748b; color: white; }
+
+/* Connection Indicator */
+.conn-indicator {
+  transition: color 0.3s;
+}
+
+/* Mobile-friendly touch targets */
+@media (max-width: 640px) {
+  .btn-primary, .btn-danger, .btn-ghost {
+    min-height: 44px;
+    width: 100%;
+    justify-content: center;
+    display: flex;
+    align-items: center;
+  }
+}
