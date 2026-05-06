@@ -81,6 +81,48 @@ Tests laufen gegen Fixture-Snapshots aus `tests/fixtures/` (kein Live-CMI).
 pytest --cov=wp_state_machine --cov-report=term-missing tests/
 ```
 
+## Playwright Setup (SPA-Scraping)
+
+Fuer JavaScript-rendernde Seiten (CMI-Web-UI, SPAs wo curl nur Skelett liefert):
+
+```bash
+# Playwright installieren (system-pip, kein venv)
+python3 -m pip install --break-system-packages playwright
+
+# Chromium-Browser herunterladen (~250 MB, landet in ~/Library/Caches/ms-playwright/)
+python3 -m playwright install chromium
+
+# Verifizieren
+python3 -c "
+from playwright.sync_api import sync_playwright
+with sync_playwright() as p:
+    b = p.chromium.launch(headless=True)
+    page = b.new_page()
+    page.goto('https://example.com')
+    print(page.title())
+    b.close()
+"
+# Erwartet: Example Domain
+```
+
+**Versionen (2026-05-06):** Playwright 1.59.0, Chrome for Testing 147.0.7727.15 (chromium-1217).
+Disk-Verbrauch: ~260 MB in `~/Library/Caches/ms-playwright/`.
+
+### CMI Playwright Probe
+
+`tools/cmi_playwright_probe.py` liest CoE-Output-Konfigurationen vom CMI (192.168.178.45):
+
+```bash
+python3 tools/cmi_playwright_probe.py
+# Ergebnis: tools/cmi_e_outputs.json
+```
+
+**Architektur-Hinweis:** Die CMI-Web-UI ist eine SPA (cmi142.js / jQuery). Der
+Detail-Endpunkt fuer E-Outputs ist `settings_output-E.cgi?cmioutput=<X>` —
+er liefert ein HTML-Fieldset direkt (kein weiteres AJAX). Das Skript nutzt
+Playwright fuer HTTP-Auth und kuenftige echte SPA-Targets. Rate-Limit: 5s
+zwischen Requests, bei HTTP 429 Abbruch + 60s Pause.
+
 ## Sicherheits-Imperative
 
 1. Schreiben nur via menupage.cgi (Browser-Emulation), nie JSON-API-writes.

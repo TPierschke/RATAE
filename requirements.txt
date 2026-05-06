@@ -24,3 +24,8 @@ python-telegram-bot>=21.0,<22.0
 # ruff>=0.4,<0.6
 # black>=24.0,<25.0
 # respx>=0.21,<0.22
+
+# Dev: SPA-Scraping (system-pip, kein venv)
+# pip install --break-system-packages playwright
+# python3 -m playwright install chromium
+# playwright>=1.59,<2.0
