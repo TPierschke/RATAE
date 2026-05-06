@@ -1,0 +1,44 @@
+[
+  {
+    "description": "Verdichter EIN (digital, A3, node 62)",
+    "hex": "3E810301",
+    "expected_field": "verdichter",
+    "expected_value": true
+  },
+  {
+    "description": "Verdichter AUS (digital, A3, node 62)",
+    "hex": "3E810300",
+    "expected_field": "verdichter",
+    "expected_value": false
+  },
+  {
+    "description": "Alarm EIN (digital, A5, node 62)",
+    "hex": "3E810501",
+    "expected_field": "alarm",
+    "expected_value": true
+  },
+  {
+    "description": "Ventil WW EIN (digital, A7 = 0x07, node 62)",
+    "hex": "3E810701",
+    "expected_field": "ventil_ww",
+    "expected_value": true
+  },
+  {
+    "description": "Heizstab HZ EIN (digital, A8, node 62) - DANGEROUS",
+    "hex": "3E810801",
+    "expected_field": "heizstab_hz",
+    "expected_value": true
+  },
+  {
+    "description": "Heizstab WW EIN (digital, A9, node 62) - DANGEROUS",
+    "hex": "3E810901",
+    "expected_field": "heizstab_ww",
+    "expected_value": true
+  },
+  {
+    "description": "Pumpe Zirkulation AUS (digital, A10 = 0x0A)",
+    "hex": "3E810A00",
+    "expected_field": "pumpe_zirku",
+    "expected_value": false
+  }
+]
