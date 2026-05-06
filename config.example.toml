@@ -1,0 +1,34 @@
+# WP State Machine — Strukturierte Konfiguration
+# Kopieren nach config.toml und anpassen.
+
+[cmi]
+poll_interval_seconds = 60   # Polling-Intervall (1/min CMI-Budget)
+request_timeout_seconds = 10
+min_request_interval_seconds = 1.0  # CMI Rate-Limit: max 1 req/sek
+
+[web]
+host = "0.0.0.0"   # Tailscale-friendly
+port = 8765
+sse_interval_seconds = 3  # Server-Sent-Events Refresh
+
+[storage]
+heartbeat_interval_seconds = 60
+telemetry_retention_days = 90
+
+[safety]
+dry_run = true   # NIEMALS false ohne explizite Freigabe!
+# Folgende Adressen sind komplett gesperrt (direkte Aktor-Schaltung):
+forbidden_address_prefixes = ["3E91"]  # Ausgaenge A1-A10 direkt
+forbidden_addresses = ["3E80153125"]   # F:21 WW_ANF.9 Heizstab-Direkt
+
+[mqtt]
+enabled = false  # true nach Postgres-Einrichtung auf .10
+
+[telegram]
+enabled = false  # true nach Token-Einrichtung
+alarm_only = true  # kein daily report, nur bei Fehler
+
+[monitoring]
+watchdog_poll_interval_seconds = 30
+anomaly_heissgas_threshold_celsius = 35.0
+anomaly_heizstab_threshold_celsius = 50.0
