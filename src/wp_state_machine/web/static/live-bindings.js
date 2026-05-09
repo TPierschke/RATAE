@@ -200,17 +200,17 @@
       case 'BEREIT':
         return 'Anlage in Bereitschaft';
       case 'HEIZUNG': {
-        // WP schaltet aus wenn Ruecklauf bis 4K unter Vorlauf-Soll heran ist
-        // (UVR-Hysterese, schont Verdichter). Quelle: knowledge_waermepumpe.md
+        // UVR-Hysterese: WP schaltet AUS wenn Ruecklauf >= Vorlauf-Soll,
+        // EIN wenn RL <= Vorlauf-Soll - 4K (4K Ein/Aus-Differenz).
+        // Quelle: knowledge_waermepumpe.md
         var vlSoll = typeof state.vorlauf_soll === 'number' ? state.vorlauf_soll : null;
         var rl = typeof state.ruecklauf === 'number' ? state.ruecklauf : null;
         if (rl !== null && vlSoll !== null) {
-          var rlAus = vlSoll - 4;
-          var diff = rlAus - rl;
+          var diff = vlSoll - rl;
           if (diff > 0.1) {
-            return 'Verdichter ' + verdichterLabel + ' · noch ' + diff.toFixed(1) + '° bis Aus (RL ' + rl.toFixed(1) + '° → ' + rlAus.toFixed(1) + '°)';
+            return 'Verdichter ' + verdichterLabel + ' · RL ' + rl.toFixed(1) + '° · noch ' + diff.toFixed(1) + '° bis Abschaltung (Soll ' + vlSoll.toFixed(1) + '°)';
           }
-          return 'Verdichter ' + verdichterLabel + ' · RL am Aus-Punkt (' + rl.toFixed(1) + '° ≥ ' + rlAus.toFixed(1) + '°)';
+          return 'Verdichter ' + verdichterLabel + ' · RL ' + rl.toFixed(1) + '° · ueber Aus-Punkt (Soll ' + vlSoll.toFixed(1) + '°)';
         }
         return 'Verdichter ' + verdichterLabel + ' · Vorlauf ' + vorlauf;
       }
