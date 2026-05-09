@@ -30,7 +30,7 @@ body::before,body::after {
 body::before { background:radial-gradient(circle at 28% 34%, rgba(185,232,255,.12), transparent 34%); }
 body::after { background:radial-gradient(circle at 70% 52%, rgba(216,200,255,.08), transparent 30%); }
 .shell {
-  width:min(1180px, calc(100% - 32px)); margin:10px auto; display:grid; gap:10px; position:relative; z-index:1;
+  width:min(1180px, calc(100% - 32px)); margin:24px auto; display:grid; gap:16px; position:relative; z-index:1;
 }
 .glass {
   background:linear-gradient(180deg, rgba(255,255,255,.11), rgba(255,255,255,.055));
@@ -39,11 +39,11 @@ body::after { background:radial-gradient(circle at 70% 52%, rgba(216,200,255,.08
 }
 .banner,.header,.hero,.tile,.panel,.footer { border-radius:var(--r); animation:rise .75s both; }
 .banner {
-  padding:6px 16px; text-align:center; font-size:12px; letter-spacing:.22em; text-transform:uppercase;
+  padding:11px 16px; text-align:center; font-size:12px; letter-spacing:.22em; text-transform:uppercase;
   background:linear-gradient(90deg, rgba(255,138,138,.16), rgba(255,199,165,.1));
 }
-.header,.hero,.panel { padding:10px 20px; }
-.footer { padding:10px 20px; }
+.header,.hero,.panel { padding:18px 20px; }
+.footer { padding:18px 20px; }
 .header,.panel-head,.io-row,.footer { display:flex; justify-content:space-between; align-items:center; gap:12px; }
 .header { gap:16px; }
 .brand { display:grid; gap:5px; }
@@ -58,21 +58,21 @@ body::after { background:radial-gradient(circle at 70% 52%, rgba(216,200,255,.08
 .pill { color:#eafff4; }
 .dot { color:var(--mint); font-size:11px; }
 .hero {
-  display:grid; gap:4px; padding:12px 24px 12px;
+  display:grid; gap:10px; padding:26px 24px 24px;
   background:linear-gradient(135deg, rgba(255,255,255,.12), rgba(255,255,255,.05));
 }
 .eyebrow { font-size:12px; letter-spacing:.18em; text-transform:uppercase; }
-.state { font:800 clamp(28px, 4vw, 44px)/.95 Inter,Geist,sans-serif; letter-spacing:-.04em; }
-.state-sub { color:rgba(235,241,252,.78); font-size:13px; }
-.grid-4,.grid-2,.ctrl { display:grid; gap:10px; }
+.state { font:800 clamp(42px, 9vw, 96px)/.9 Inter,Geist,sans-serif; letter-spacing:-.05em; }
+.state-sub { color:rgba(235,241,252,.78); font-size:15px; }
+.grid-4,.grid-2,.ctrl { display:grid; gap:16px; }
 .grid-4 { grid-template-columns:repeat(4, minmax(0,1fr)); }
 .grid-2 { grid-template-columns:1.2fr .8fr; }
 .grid-2 > * { min-width:0; }
 .tile,.panel { transition:transform .24s ease, border-color .24s ease; }
-.tile { padding:7px 16px; }
+.tile { padding:18px; }
 .tile:hover,.panel:hover { transform:scale(1.012); border-color:rgba(255,255,255,.14); }
 .label { font-size:12px; letter-spacing:.08em; text-transform:uppercase; }
-.value { margin-top:2px; font:700 clamp(28px, 3.6vw, 36px)/.93 Inter,Geist,sans-serif; letter-spacing:-.045em; }
+.value { margin-top:10px; font:700 clamp(28px, 4.6vw, 44px)/1 Inter,Geist,sans-serif; letter-spacing:-.045em; }
 .value small { font-size:.48em; color:rgba(255,255,255,.68); }
 .warm .value { color:var(--peach); }
 .live .value { color:var(--mint); }
@@ -247,9 +247,9 @@ button {
   .tab-bar {
     display: flex;
     gap: 8px;
-    padding: 4px;
+    padding: 8px;
     width: min(1180px, calc(100% - 32px));
-    margin: 10px auto 0;
+    margin: 24px auto 0;
     position: relative;
     z-index: 1;
   }
@@ -445,7 +445,7 @@ button {
     </section>
 
     <footer class="footer glass">
-      <span>FE 0.2.8 · BE 0.2.0</span>
+      <span>FE 0.2.11 · BE 0.4.0</span>
       <span>SSE <span class="ok">● verbunden</span> · 2026-05-09</span>
     </footer>
   </section>
