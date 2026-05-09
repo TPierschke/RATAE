@@ -1,4 +1,7 @@
 """wp-state-machine — Zentrale Steuerung Waermepumpe via CMI."""
 
-__version__ = "0.1"
+# Backend semver. Frontend version is tracked separately in
+# src/wp_state_machine/web/static/version.json so each side can be bumped
+# independently. Major version stays 0.x indefinitely.
+__version__ = "0.1.0"
 __author__ = "Thomas Pierschke"

@@ -32,6 +32,33 @@ async def client(app):
         yield c
 
 
+class TestApiVersion:
+    @pytest.mark.asyncio
+    async def test_api_version_has_backend_frontend_build(self, client: AsyncClient):
+        resp = await client.get("/api/version")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "backend" in data
+        assert "frontend" in data
+        assert "build" in data
+
+    @pytest.mark.asyncio
+    async def test_api_version_backend_matches_module(self, client: AsyncClient):
+        from wp_state_machine import __version__
+
+        resp = await client.get("/api/version")
+        assert resp.json()["backend"] == __version__
+
+    @pytest.mark.asyncio
+    async def test_api_version_semver_format(self, client: AsyncClient):
+        import re
+
+        resp = await client.get("/api/version")
+        data = resp.json()
+        assert re.fullmatch(r"\d+\.\d+\.\d+", data["backend"]), data["backend"]
+        assert re.fullmatch(r"\d+\.\d+\.\d+", data["frontend"]), data["frontend"]
+
+
 class TestHealth:
     @pytest.mark.asyncio
     async def test_health_ok(self, client: AsyncClient):

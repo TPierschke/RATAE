@@ -32,6 +32,7 @@ from fastapi.staticfiles import StaticFiles
 
 _STATIC_DIR = Path(__file__).parents[1] / "web" / "static"
 
+from wp_state_machine import __version__ as _BACKEND_VERSION
 from wp_state_machine.core.models import (
     Betriebsart,
     HealthStatus,
@@ -43,6 +44,18 @@ from wp_state_machine.core.models import (
     WriteResult,
 )
 from wp_state_machine.safety import check_write
+
+
+def _read_frontend_version() -> str:
+    """Reads frontend semver from web/static/version.json. 'unknown' on error."""
+    try:
+        with (_STATIC_DIR / "version.json").open(encoding="utf-8") as f:
+            return str(json.load(f).get("frontend", "unknown"))
+    except (OSError, json.JSONDecodeError):
+        return "unknown"
+
+
+_FRONTEND_VERSION = _read_frontend_version()
 
 log = logging.getLogger(__name__)
 
@@ -179,7 +192,7 @@ def create_app(state: Optional[AppState] = None) -> FastAPI:
     app = FastAPI(
         title="WP State Machine",
         description="Zentrale Steuerung Waermepumpe via CMI",
-        version="0.1",
+        version=_BACKEND_VERSION,
     )
 
     # Statische Web-Assets
@@ -190,11 +203,13 @@ def create_app(state: Optional[AppState] = None) -> FastAPI:
     async def api_version() -> dict[str, Any]:
         """Version-Info fuer Frontend-Footer und Debugging.
 
-        backend = Hardcoded Backend-Version-String.
-        build   = Server-Startup-Zeit (ISO8601 UTC). Wechselt mit jedem Restart.
+        backend  = Backend semver from wp_state_machine.__version__.
+        frontend = Frontend semver from web/static/version.json.
+        build    = Server-Startup-Zeit (ISO8601 UTC). Wechselt mit jedem Restart.
         """
         return {
-            "backend": "0.1.4",
+            "backend": _BACKEND_VERSION,
+            "frontend": _FRONTEND_VERSION,
             "build": _state.startup_time,
         }
 
