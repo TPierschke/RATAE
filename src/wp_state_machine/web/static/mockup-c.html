@@ -382,9 +382,10 @@ button {
         <div class="value" data-bind="aussen" data-bind-format="temp">+5.2<small>°</small></div>
       </article>
       <article class="tile glass">
-        <div class="label">Raumtemp <small style="opacity:.55;font-size:.78em;">RAS+</small></div>
+        <div class="label">Raumtemp</div>
         <div class="value">
-          <span data-bind="traum1" data-bind-format="temp-no-sign">24.0°</span>
+          <span data-bind="raum_ist" data-bind-format="temp-no-sign">21.0°</span>
+          <small class="soll" data-bind="traum1" data-bind-format="temp-no-sign">24.0°</small>
         </div>
       </article>
       <article class="tile glass warm">
@@ -457,7 +458,7 @@ button {
     </section>
 
     <footer class="footer glass">
-      <span>FE 0.2.18 · BE 0.4.0</span>
+      <span>FE 0.2.19 · BE 0.4.0</span>
       <span>SSE <span class="ok">● verbunden</span> · 2026-05-09</span>
     </footer>
   </section>
