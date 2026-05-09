@@ -50,13 +50,17 @@ async def scrape_once(config: Config, app_state) -> dict:
     /scrape/run (manuell ueber UI-Button) aufgerufen.
     Return: dict mit den geholten Werten (fuer Endpoint-Response).
     """
+    from datetime import datetime, timezone
+
+    import aiohttp
+
+    from wp_state_machine.core.models import Sensoren, Betriebsart, TelemetryRecord
+    from wp_state_machine.ingest.modbus_slave import MODBUS_FRESHNESS_SECONDS
     from wp_state_machine.ingest.web_scraper import (
         parse_outputs_page,
         parse_functions_overview,
         merge_scrape_results,
     )
-    from wp_state_machine.core.models import Sensoren, Betriebsart, TelemetryRecord
-    import aiohttp
 
     auth = aiohttp.BasicAuth(*config.cmi_auth())
     timeout = aiohttp.ClientTimeout(total=config.cmi_timeout)
@@ -101,8 +105,16 @@ async def scrape_once(config: Config, app_state) -> dict:
     app_state.cmi_reachable = True
 
     if app_state.postgres and app_state.postgres.is_connected:
-        record = TelemetryRecord.from_sensoren(sensoren, app_state.wp_state)
-        await app_state.postgres.insert_telemetry(record.model_dump())
+        # Skip insert when Modbus has revived during the scrape — snapshot_logger
+        # will write the (already merged) record at its next 5 min tick.
+        modbus_fresh = (
+            app_state.last_modbus_update is not None
+            and (datetime.now(timezone.utc) - app_state.last_modbus_update).total_seconds()
+            < MODBUS_FRESHNESS_SECONDS
+        )
+        if not modbus_fresh:
+            record = TelemetryRecord.from_sensoren(sensoren, app_state.wp_state)
+            await app_state.postgres.insert_telemetry(record.model_dump())
 
     warnings = run_all_checks(sensoren, last_update=app_state.last_update)
     for w in warnings:
