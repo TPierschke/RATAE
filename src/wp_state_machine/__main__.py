@@ -93,6 +93,7 @@ async def scrape_once(config: Config, app_state) -> dict:
         vorlauf=merged.get("vorlauf"),
         ruecklauf=merged.get("ruecklauf"),
         warmwasser=merged.get("warmwasser"),
+        raum_ist=merged.get("raum_ist"),
         verdichter=merged.get("verdichter"),
         ventil_ww=merged.get("ventil_ww"),
         heizstab_hz=merged.get("heizstab_hz"),

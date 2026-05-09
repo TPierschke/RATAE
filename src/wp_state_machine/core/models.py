@@ -71,6 +71,7 @@ class Sensoren(BaseModel):
     vorlauf: Optional[float] = Field(None, description="Puffer oben S2 (Grad C)")
     ruecklauf: Optional[float] = Field(None, description="FBH-Ruecklauf S3 (Grad C)")
     warmwasser: Optional[float] = Field(None, description="WW-Speicher S4 (Grad C)")
+    raum_ist: Optional[float] = Field(None, description="Raumtemperatur S5 (Grad C)")
     heissgas: Optional[float] = Field(None, description="Verdichter-Ausgang S7 (Grad C)")
     fluessigkeit: Optional[float] = Field(None, description="Fluessigkeitsleitung S8 (Grad C)")
     saugleitung: Optional[float] = Field(None, description="Saugleitung S9 (Grad C)")
@@ -153,6 +154,7 @@ class TelemetryRecord(BaseModel):
     ruecklauf: Optional[float] = None
     warmwasser: Optional[float] = None
     aussen: Optional[float] = None
+    raum_ist: Optional[float] = None
     heissgas: Optional[float] = None
     fluessigkeit: Optional[float] = None
     saugleitung: Optional[float] = None
@@ -197,6 +199,7 @@ class TelemetryRecord(BaseModel):
             ruecklauf=s.ruecklauf,
             warmwasser=s.warmwasser,
             aussen=s.aussen,
+            raum_ist=s.raum_ist,
             heissgas=s.heissgas,
             fluessigkeit=s.fluessigkeit,
             saugleitung=s.saugleitung,

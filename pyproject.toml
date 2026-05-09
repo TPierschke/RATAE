@@ -1,6 +1,6 @@
 [project]
 name = "wp-state-machine"
-version = "0.2.1"
+version = "0.3.0"
 description = "WP State Machine — zentrale Steuerung Waermepumpe via CMI"
 readme = "README.md"
 requires-python = ">=3.11"
