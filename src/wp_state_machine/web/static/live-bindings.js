@@ -60,6 +60,7 @@
     'state-warmwasser',
     'state-bereit',
     'state-standby',
+    'state-legionellenschutz',
     'state-unknown'
   ];
 
@@ -189,6 +190,7 @@
 
   function getStateSubText(state, rawState) {
     var vorlauf = formatTemp(state.vorlauf, false);
+    var warmwasser = formatTemp(state.warmwasser, false);
     var verdichter = normalizeBool(state.verdichter);
     var verdichterLabel = verdichter === true ? 'aktiv' : (verdichter === false ? 'aus' : '---');
 
@@ -199,6 +201,8 @@
         return 'Verdichter ' + verdichterLabel + ' · Vorlauf ' + vorlauf;
       case 'WARMWASSER':
         return 'WW-Bereitung · Vorlauf ' + vorlauf;
+      case 'LEGIONELLENSCHUTZ':
+        return 'Legionellenschutz aktiv · WW ' + warmwasser + ' (Ziel 70°C)';
       case 'STANDBY':
         return 'Standby';
       default:
@@ -251,7 +255,7 @@
   function applyStateBindings(state) {
     var rawState = !isNil(state.wp_state) ? String(state.wp_state).toUpperCase() : '---';
     var stateClass = rawState === 'HEIZUNG' || rawState === 'WARMWASSER' ||
-      rawState === 'BEREIT' || rawState === 'STANDBY'
+      rawState === 'BEREIT' || rawState === 'STANDBY' || rawState === 'LEGIONELLENSCHUTZ'
       ? 'state-' + rawState.toLowerCase()
       : 'state-unknown';
 

@@ -44,7 +44,7 @@ class TestBetriebsart:
 
 class TestWPState:
     def test_all_states_in_set(self):
-        for state in [WPState.HEIZUNG, WPState.WARMWASSER, WPState.BEREIT, WPState.STANDBY, WPState.UNKNOWN]:
+        for state in [WPState.HEIZUNG, WPState.WARMWASSER, WPState.BEREIT, WPState.STANDBY, WPState.LEGIONELLENSCHUTZ, WPState.UNKNOWN]:
             assert state in WP_STATES
 
 
@@ -82,6 +82,14 @@ class TestSensoren:
 
     def test_derive_state_warmwasser(self):
         s = Sensoren(verdichter=True, ventil_ww=True)
+        assert s.derive_state() == WPState.WARMWASSER
+
+    def test_derive_state_legionellenschutz(self):
+        s = Sensoren(verdichter=True, ventil_ww=True, heizstab_ww=True)
+        assert s.derive_state() == WPState.LEGIONELLENSCHUTZ
+
+    def test_derive_state_warmwasser_without_heizstab(self):
+        s = Sensoren(verdichter=True, ventil_ww=True, heizstab_ww=False)
         assert s.derive_state() == WPState.WARMWASSER
 
     def test_derive_state_bereit(self):

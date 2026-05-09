@@ -51,10 +51,11 @@ class WPState(str):
     WARMWASSER = "WARMWASSER"  # Verdichter AN + Ventil WW
     BEREIT = "BEREIT"        # Verdichter AUS, Betrieb aktiv
     STANDBY = "STANDBY"      # Betriebsart == STANDBY
+    LEGIONELLENSCHUTZ = "LEGIONELLENSCHUTZ"  # Verdichter AN + Ventil WW + Heizstab WW
     UNKNOWN = "UNKNOWN"      # Noch keine Daten
 
 
-WP_STATES = {WPState.HEIZUNG, WPState.WARMWASSER, WPState.BEREIT, WPState.STANDBY, WPState.UNKNOWN}
+WP_STATES = {WPState.HEIZUNG, WPState.WARMWASSER, WPState.BEREIT, WPState.STANDBY, WPState.LEGIONELLENSCHUTZ, WPState.UNKNOWN}
 
 
 # ---------------------------------------------------------------------------
@@ -130,6 +131,9 @@ class Sensoren(BaseModel):
             return WPState.UNKNOWN
         if self.verdichter:
             if self.ventil_ww:
+                # LEGIONELLENSCHUTZ wenn: Verdichter AN + Ventil WW + Heizstab WW eskaliert
+                if self.heizstab_ww:
+                    return WPState.LEGIONELLENSCHUTZ
                 return WPState.WARMWASSER
             return WPState.HEIZUNG
         return WPState.BEREIT
