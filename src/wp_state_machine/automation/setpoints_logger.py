@@ -70,8 +70,13 @@ async def setpoints_loop(app_state, config: Optional[Any] = None, interval: int 
                                 setpoints.setdefault("ww_soll_legio", 70.0)
 
                                 if setpoints:
-                                    await app_state.save_setpoints(setpoints)
-                                    log.debug("setpoints_logger: live crawl + persist = %s", setpoints)
+                                    # Merge with existing keys so a partial crawl
+                                    # (which can happen when the function overview
+                                    # omits a value depending on operating state)
+                                    # does not wipe previously known fields.
+                                    merged = {**(app_state.setpoints or {}), **setpoints}
+                                    await app_state.save_setpoints(merged)
+                                    log.debug("setpoints_logger: live crawl + persist = %s", merged)
                                 else:
                                     log.warning("setpoints_logger: no setpoints found in 3E01581E")
                             else:
