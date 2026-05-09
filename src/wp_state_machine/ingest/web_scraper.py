@@ -157,6 +157,8 @@ def parse_functions_overview(html: str) -> dict[str, object]:
       vorlauf_ist: float (°C)
       vorlauf_soll: float (°C)
       raum_ist: float (°C)
+      ww_soll_normal: float (°C, aus F:2 Tww.SOLL)
+      ww_ist: float (°C, aus F:2 Tww.IST)
       aussen: float (°C)
       vorlauf: float (°C, Puffer S2)
       ruecklauf: float (°C, FBH-RL S3)
@@ -191,20 +193,33 @@ def parse_functions_overview(html: str) -> dict[str, object]:
             if t is not None:
                 result["absenk_soll"] = t
 
-        # Raum-IST: "Traum.IST: 29,2 °C"
-        elif "TRAUM.IST" in uline or "RAUM.IST" in uline or "T.RAUM.IST" in uline:
+        # Raum-IST: "Traum.IST: 27,2 °C"
+        # Muss vor anderen Traum-Patterns geprueft werden
+        elif "TRAUM" in uline and "IST" in uline and "SOLL" not in uline:
             t = _parse_temp(line)
             if t is not None:
                 result["raum_ist"] = t
 
+        # WW-Soll Normal: "Tww.SOLL: 49 °C" aus F:2 WW_ANF.1
+        elif "TWW" in uline and "SOLL" in uline:
+            t = _parse_temp(line)
+            if t is not None:
+                result["ww_soll_normal"] = t
+
+        # WW-IST: "Tww.IST: 45,3 °C"
+        elif "TWW" in uline and "IST" in uline:
+            t = _parse_temp(line)
+            if t is not None:
+                result["ww_ist"] = t
+
         # Vorlauf-IST aus FBHEIZ-Block: "Tvorl.IST: 27,5 °C"
-        elif "TVORL.IST" in uline or "VORL.IST" in uline:
+        elif "TVORL" in uline and "IST" in uline:
             t = _parse_temp(line)
             if t is not None:
                 result["vorlauf_ist"] = t
 
-        # Vorlauf-Soll
-        elif "TVORL.SOLL" in uline or "VORL.SOLL" in uline:
+        # Vorlauf-Soll: "Tvorl.SOLL: 29,5 °C"
+        elif "TVORL" in uline and "SOLL" in uline:
             t = _parse_temp(line)
             if t is not None:
                 result["vorlauf_soll"] = t
@@ -266,10 +281,28 @@ def merge_scrape_results(
     """
     Merged Outputs-Page + Functions-Overview in ein gemeinsames dict.
     Functions-Werte ueberschreiben Outputs-Werte bei Konflikten.
+    Extrahiert zusaetzlich ein 'setpoints' sub-dict mit Sollwerten.
     """
     merged = {}
     merged.update(outputs)
     merged.update(functions)
+
+    # Extrahiere Setpoints als sub-dict fuer app_state.setpoints
+    setpoints = {}
+    if "ww_soll_normal" in functions:
+        setpoints["ww_soll_normal"] = functions["ww_soll_normal"]
+    if "ww_ist" in functions:
+        setpoints["ww_ist"] = functions["ww_ist"]
+    if "normal_soll" in functions:
+        setpoints["normal_soll"] = functions["normal_soll"]
+    if "absenk_soll" in functions:
+        setpoints["absenk_soll"] = functions["absenk_soll"]
+    if "vorlauf_soll" in functions:
+        setpoints["vorlauf_soll"] = functions["vorlauf_soll"]
+
+    if setpoints:
+        merged["setpoints"] = setpoints
+
     return merged
 
 

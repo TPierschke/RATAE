@@ -105,6 +105,12 @@ async def scrape_once(config: Config, app_state) -> dict:
     await app_state.update_sensoren(sensoren)
     app_state.cmi_reachable = True
 
+    # Update setpoints aus der Scrape
+    if merged.get("setpoints"):
+        app_state.setpoints = merged["setpoints"]
+        from datetime import datetime, timezone
+        app_state.setpoints_last_update = datetime.now(timezone.utc)
+
     if app_state.postgres and app_state.postgres.is_connected:
         # Skip insert when Modbus has revived during the scrape — snapshot_logger
         # will write the (already merged) record at its next 5 min tick.

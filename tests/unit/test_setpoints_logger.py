@@ -16,29 +16,29 @@ from wp_state_machine.automation.setpoints_logger import setpoints_loop
 class TestSetpointsLoop:
     @pytest.mark.asyncio
     async def test_setpoints_loop_initializes_appstate(self):
-        """Setpoints-Loop setzt app_state.setpoints mit Defaults."""
+        """Setpoints-Loop setzt app_state.setpoints mit Fallback-Defaults."""
         app_state = AppState()
 
         # Initial sollte setpoints leer sein
         assert app_state.setpoints == {}
 
         # Starte Loop mit kurz Interval (100ms) fuer schnelle Tests
-        task = asyncio.create_task(setpoints_loop(app_state, interval=0.1))
+        task = asyncio.create_task(setpoints_loop(app_state, config=None, interval=0.1))
 
         try:
             # Warte bis Loop mindestens einmal durchgelaufen hat
             await asyncio.sleep(0.2)
 
-            # Jetzt sollte setpoints mit Defaults gefuellt sein
+            # Jetzt sollte setpoints mit Fallback-Defaults gefuellt sein
             assert app_state.setpoints is not None
             assert "ww_soll_normal" in app_state.setpoints
-            assert "ww_soll_legio" in app_state.setpoints
-            assert "vorlauf_soll_min" in app_state.setpoints
+            assert "normal_soll" in app_state.setpoints
+            assert "absenk_soll" in app_state.setpoints
 
-            # Defaults pruefen
+            # Fallback-Defaults pruefen
             assert app_state.setpoints["ww_soll_normal"] == 50.0
-            assert app_state.setpoints["ww_soll_legio"] == 70.0
-            assert app_state.setpoints["vorlauf_soll_min"] == 20.0
+            assert app_state.setpoints["normal_soll"] == 24.0
+            assert app_state.setpoints["absenk_soll"] == 21.0
         finally:
             task.cancel()
             try:
@@ -51,7 +51,7 @@ class TestSetpointsLoop:
         """Setpoints-Loop aktualisiert regelmaeßig."""
         app_state = AppState()
 
-        task = asyncio.create_task(setpoints_loop(app_state, interval=0.1))
+        task = asyncio.create_task(setpoints_loop(app_state, config=None, interval=0.1))
 
         try:
             # Erste Update
@@ -62,7 +62,7 @@ class TestSetpointsLoop:
             await asyncio.sleep(0.15)
             second_setpoints = dict(app_state.setpoints)
 
-            # Sollwerte sollten gleich sein (da statisch), aber beide sollten gefuellt sein
+            # Fallback-Sollwerte sollten gleich sein (da statisch), aber beide gefuellt
             assert first_setpoints == second_setpoints
             assert first_setpoints["ww_soll_normal"] == 50.0
         finally:
