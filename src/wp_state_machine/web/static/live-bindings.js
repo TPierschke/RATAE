@@ -374,7 +374,24 @@
       });
   }
 
+  function renderPageDate() {
+    var el = document.getElementById('page-date');
+    if (!el) return;
+    try {
+      var fmt = new Intl.DateTimeFormat('de-DE', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+      el.textContent = fmt.format(new Date());
+    } catch (e) {
+      // Intl not supported -- keep static fallback
+    }
+  }
+
   function start() {
+    renderPageDate();
     tick();
     window.setInterval(tick, POLL_INTERVAL_MS);
   }
