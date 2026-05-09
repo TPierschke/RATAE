@@ -236,7 +236,7 @@ def create_app(state: Optional[AppState] = None) -> FastAPI:
 
     # Statische Web-Assets
     if _STATIC_DIR.exists():
-        app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
+        app.mount("/ui", StaticFiles(directory=str(_STATIC_DIR)), name="ui")
 
     @app.get("/api/version")
     async def api_version() -> dict[str, Any]:

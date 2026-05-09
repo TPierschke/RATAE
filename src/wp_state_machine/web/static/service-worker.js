@@ -3,9 +3,9 @@
 const CACHE_NAME = 'wp-sm-v3';
 const STATIC_ASSETS = [
   '/',
-  '/static/app.css',
-  '/static/app.js',
-  '/static/manifest.json',
+  '/ui/app.css',
+  '/ui/app.js',
+  '/ui/manifest.json',
 ];
 
 self.addEventListener('install', (event) => {

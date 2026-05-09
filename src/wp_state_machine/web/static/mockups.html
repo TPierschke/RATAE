@@ -34,7 +34,7 @@ iframe{width:100%;height:calc(100vh - 48px);border:0;display:block}
 <iframe id="frame"></iframe>
 <script>
 const m = (new URLSearchParams(location.search)).get('m') || 'a';
-document.getElementById('frame').src = '/static/mockup-' + m + '.html';
+document.getElementById('frame').src = '/ui/mockup-' + m + '.html';
 ['a','b','c','d','e','f','g','h','i','j','k'].forEach(k => {
   const el = document.getElementById('l'+k);
   if (k === m) el.classList.add('active');
