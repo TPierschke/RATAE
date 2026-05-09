@@ -175,6 +175,209 @@
   })();
 </script>
 <!-- /theme-switcher -->
+<!-- details-drawer -->
+<style>
+  #details-trigger {
+    position: fixed;
+    top: 12px;
+    left: 220px;
+    z-index: 9999;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 999px;
+    background: rgba(8,10,16,0.78);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: rgba(255,255,255,0.92);
+    font: 11px/1.2 "JetBrains Mono", ui-monospace, monospace;
+    padding: 6px 12px;
+    cursor: pointer;
+  }
+  #details-trigger:hover { border-color: rgba(255,255,255,0.28); }
+  #details-overlay {
+    position: fixed; inset: 0; z-index: 10000;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(4px);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.22s ease;
+  }
+  #details-overlay.open { opacity: 1; pointer-events: auto; }
+  #details-drawer {
+    position: fixed; top: 0; right: 0; bottom: 0; z-index: 10001;
+    width: min(480px, 100vw);
+    background: #0b0f15;
+    color: #e7ebf2;
+    transform: translateX(100%);
+    transition: transform 0.28s cubic-bezier(.2,.85,.2,1);
+    overflow-y: auto;
+    border-left: 1px solid rgba(255,255,255,0.08);
+    box-shadow: -24px 0 60px rgba(0,0,0,0.6);
+    font: 13px/1.45 "JetBrains Mono", ui-monospace, monospace;
+  }
+  #details-overlay.open + #details-drawer,
+  #details-drawer.open { transform: translateX(0); }
+  #details-drawer header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 22px; border-bottom: 1px solid rgba(255,255,255,0.08);
+    font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: #9aa3b3;
+    position: sticky; top: 0;
+    background: linear-gradient(180deg, #0b0f15 80%, rgba(11,15,21,0));
+    z-index: 1;
+  }
+  #details-drawer header strong { color: #e7ebf2; letter-spacing: 0.04em; }
+  #details-close {
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 6px; background: transparent; color: inherit;
+    font: inherit; padding: 4px 9px; cursor: pointer;
+  }
+  #details-close:hover { border-color: rgba(255,255,255,0.32); }
+  #details-drawer section { padding: 14px 22px 18px; }
+  #details-drawer h3 {
+    margin: 0 0 8px; font-size: 10px; letter-spacing: 0.22em;
+    text-transform: uppercase; color: #6f7886; font-weight: 500;
+  }
+  #details-drawer .row {
+    display: grid; grid-template-columns: 1fr auto;
+    gap: 12px; padding: 6px 0;
+    border-bottom: 1px dashed rgba(255,255,255,0.06);
+    font-size: 12px;
+  }
+  #details-drawer .row:last-child { border-bottom: 0; }
+  #details-drawer .name { color: #c2cad6; }
+  #details-drawer .val { color: #e7ebf2; font-variant-numeric: tabular-nums; }
+  #details-drawer .val.on { color: #5fff8e; }
+  #details-drawer .val.off { color: #6c7480; }
+  #details-drawer .val.alarm { color: #ff5b5b; }
+  #details-drawer .ref {
+    display: inline-block; margin-left: 8px;
+    color: #4d5663; font-size: 10px; letter-spacing: 0.06em;
+  }
+  @media print { #details-trigger, #details-overlay, #details-drawer { display: none !important; } }
+</style>
+<button id="details-trigger" type="button">Details</button>
+<div id="details-overlay"></div>
+<aside id="details-drawer" aria-hidden="true">
+  <header>
+    <span><strong>Alle Werte</strong> · Live</span>
+    <button id="details-close" type="button">×</button>
+  </header>
+  <section>
+    <h3>Temperaturen</h3>
+    <div class="row"><span class="name">Aussen <span class="ref">S1</span></span><span class="val" data-detail-temp="aussen">---</span></div>
+    <div class="row"><span class="name">Vorlauf Puffer <span class="ref">S2</span></span><span class="val" data-detail-temp="vorlauf">---</span></div>
+    <div class="row"><span class="name">Ruecklauf FBH <span class="ref">S3</span></span><span class="val" data-detail-temp="ruecklauf">---</span></div>
+    <div class="row"><span class="name">Warmwasser <span class="ref">S4</span></span><span class="val" data-detail-temp="warmwasser">---</span></div>
+    <div class="row"><span class="name">Heissgas <span class="ref">S7</span></span><span class="val" data-detail-temp="heissgas">---</span></div>
+    <div class="row"><span class="name">Fluessigkeit <span class="ref">S8</span></span><span class="val" data-detail-temp="fluessigkeit">---</span></div>
+    <div class="row"><span class="name">Saugleitung <span class="ref">S9</span></span><span class="val" data-detail-temp="saugleitung">---</span></div>
+    <div class="row"><span class="name">Raum-Soll eff.</span><span class="val" data-detail-temp="traum1">---</span></div>
+    <div class="row"><span class="name">Vorlauf-Soll</span><span class="val" data-detail-temp="vorlauf_soll">---</span></div>
+  </section>
+  <section>
+    <h3>Eingaenge / Schalter</h3>
+    <div class="row"><span class="name">Phasenwaechter <span class="ref">S10</span></span><span class="val" data-detail-bool="phasenwaechter">---</span></div>
+    <div class="row"><span class="name">Verdichter-Freigabe <span class="ref">S11</span></span><span class="val" data-detail-bool="verdichter_freigabe">---</span></div>
+    <div class="row"><span class="name">ND-Schalter 1 <span class="ref">S12</span></span><span class="val" data-detail-bool="nd_schalter1">---</span></div>
+    <div class="row"><span class="name">HD-Schalter <span class="ref">S13</span></span><span class="val" data-detail-bool="hd_schalter">---</span></div>
+    <div class="row"><span class="name">ND-Schalter 2 <span class="ref">S14</span></span><span class="val" data-detail-bool="nd_schalter2">---</span></div>
+  </section>
+  <section>
+    <h3>Ausgaenge / Aktoren</h3>
+    <div class="row"><span class="name">FBH-Pumpe <span class="ref">A1</span></span><span class="val" data-detail-bool="pumpe_hzkr">---</span></div>
+    <div class="row"><span class="name">Ladepumpe <span class="ref">A2</span></span><span class="val" data-detail-bool="ladepumpe">---</span></div>
+    <div class="row"><span class="name">Verdichter <span class="ref">A3</span></span><span class="val" data-detail-bool="verdichter">---</span></div>
+    <div class="row"><span class="name">MVR0407 FL1 <span class="ref">A4</span></span><span class="val" data-detail-bool="mvr0407_fl1">---</span></div>
+    <div class="row"><span class="name">Alarm <span class="ref">A5</span></span><span class="val" data-detail-alarm="alarm">---</span></div>
+    <div class="row"><span class="name">MVR0407 Nach2 <span class="ref">A6</span></span><span class="val" data-detail-bool="mvr0407_nach2">---</span></div>
+    <div class="row"><span class="name">Ventil WW <span class="ref">A7</span></span><span class="val" data-detail-bool="ventil_ww">---</span></div>
+    <div class="row"><span class="name">Heizstab HZ <span class="ref">A8</span></span><span class="val" data-detail-alarm="heizstab_hz">---</span></div>
+    <div class="row"><span class="name">Heizstab WW <span class="ref">A9</span></span><span class="val" data-detail-alarm="heizstab_ww">---</span></div>
+    <div class="row"><span class="name">Zirkulationspumpe <span class="ref">A10</span></span><span class="val" data-detail-bool="pumpe_zirku">---</span></div>
+    <div class="row"><span class="name">Meldung Heizung</span><span class="val" data-detail-bool="meldung_heizung">---</span></div>
+  </section>
+  <section>
+    <h3>Zaehler</h3>
+    <div class="row"><span class="name">Betriebsstd. Verdichter</span><span class="val" data-detail-int="betr_std_verdichter">---</span></div>
+    <div class="row"><span class="name">Schaltungen Verdichter</span><span class="val" data-detail-int="schaltungen_verdichter">---</span></div>
+    <div class="row"><span class="name">Betriebsstd. Heizstab FB</span><span class="val" data-detail-int="betr_std_heizstab_fb">---</span></div>
+    <div class="row"><span class="name">Betriebsstd. Heizstab WW</span><span class="val" data-detail-int="betr_std_heizstab_ww">---</span></div>
+  </section>
+  <section>
+    <h3>Status / Funktionen</h3>
+    <div class="row"><span class="name">Message Heizung</span><span class="val" data-detail-int="message_fb">---</span></div>
+    <div class="row"><span class="name">Message WW</span><span class="val" data-detail-int="message_ww">---</span></div>
+    <div class="row"><span class="name">Betriebsart F:1</span><span class="val" data-detail-mode="betriebsart">---</span></div>
+    <div class="row"><span class="name">WP-State</span><span class="val" data-detail-state>---</span></div>
+  </section>
+</aside>
+<script>
+  (function () {
+    var trigger = document.getElementById('details-trigger');
+    var overlay = document.getElementById('details-overlay');
+    var drawer = document.getElementById('details-drawer');
+    var close = document.getElementById('details-close');
+    if (!trigger || !drawer) return;
+    function open() { overlay.classList.add('open'); drawer.classList.add('open'); drawer.setAttribute('aria-hidden', 'false'); }
+    function shut() { overlay.classList.remove('open'); drawer.classList.remove('open'); drawer.setAttribute('aria-hidden', 'true'); }
+    trigger.addEventListener('click', open);
+    close.addEventListener('click', shut);
+    overlay.addEventListener('click', shut);
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') shut(); });
+
+    var BETRIEBSART_NAMES = {1:'Standby',2:'Zeit/Auto',3:'Normal',4:'Abgesenkt',5:'Party',6:'Urlaub',7:'Feiertag'};
+
+    function fmtTemp(v) {
+      if (v === null || v === undefined) return '---';
+      var n = Number(v);
+      if (Number.isNaN(n)) return '---';
+      return (n >= 0 ? '+' : '') + n.toFixed(1) + '°';
+    }
+    function fmtBool(v, alarm) {
+      if (v === null || v === undefined) return '---';
+      if (alarm) return v ? 'AKTIV' : 'aus';
+      return v ? 'an' : 'aus';
+    }
+
+    async function update() {
+      try {
+        var r = await fetch('/state', { cache: 'no-store' });
+        if (!r.ok) return;
+        var data = await r.json();
+        var s = data.sensoren || {};
+        drawer.querySelectorAll('[data-detail-temp]').forEach(function (el) {
+          el.textContent = fmtTemp(s[el.dataset.detailTemp]);
+        });
+        drawer.querySelectorAll('[data-detail-bool]').forEach(function (el) {
+          var v = s[el.dataset.detailBool];
+          el.textContent = fmtBool(v, false);
+          el.classList.toggle('on', v === true);
+          el.classList.toggle('off', v === false);
+        });
+        drawer.querySelectorAll('[data-detail-alarm]').forEach(function (el) {
+          var v = s[el.dataset.detailAlarm];
+          el.textContent = fmtBool(v, true);
+          el.classList.toggle('alarm', v === true);
+          el.classList.toggle('off', v === false);
+        });
+        drawer.querySelectorAll('[data-detail-int]').forEach(function (el) {
+          var v = s[el.dataset.detailInt];
+          el.textContent = (v === null || v === undefined) ? '---' : String(v);
+        });
+        var modeEl = drawer.querySelector('[data-detail-mode]');
+        if (modeEl) {
+          var v = s.betriebsart;
+          modeEl.textContent = (v === null || v === undefined) ? '---' : (v + ' — ' + (BETRIEBSART_NAMES[v] || '?'));
+        }
+        var stateEl = drawer.querySelector('[data-detail-state]');
+        if (stateEl) stateEl.textContent = data.wp_state || data.state || '---';
+      } catch (e) {}
+    }
+    update();
+    setInterval(update, 5000);
+  })();
+</script>
+<!-- /details-drawer -->
+
 
   <main class="app">
     <div class="status-strip"><span>RATAE/WPSM</span><span>DRY-RUN</span><span>MODBUS ONLINE</span><span>LATENCY 22ms</span><span>UPTIME 14d 03h</span><span>LOAD 0.04</span></div>
