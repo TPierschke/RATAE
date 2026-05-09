@@ -168,6 +168,14 @@ class AppState:
                 from wp_state_machine.automation.coil_audit import handle_verdichter_edge
                 asyncio.create_task(handle_verdichter_edge(self, self.config))
 
+    async def get_snapshot(self) -> tuple["Sensoren", str]:
+        """Atomic (sensoren, wp_state) read under the lock — prevents readers
+        from observing a torn pair when a writer commits between two field
+        accesses.
+        """
+        async with self._lock:
+            return self.sensoren, self.wp_state
+
 
 # Singleton fuer den laufenden Server
 _app_state = AppState()

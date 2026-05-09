@@ -206,3 +206,25 @@ class TestWWStart:
     async def test_ww_start_reason_contains_dry_run(self, client: AsyncClient):
         resp = await client.post("/functions/F9/start")
         assert "DRY_RUN" in resp.json()["reason"]
+
+
+class TestAppStateSnapshot:
+    @pytest.mark.asyncio
+    async def test_get_snapshot_returns_tuple(self, app_state: AppState):
+        sensoren, wp_state = await app_state.get_snapshot()
+        # Should be the current state, not None
+        from wp_state_machine.core.models import Sensoren
+        assert isinstance(sensoren, Sensoren)
+        assert isinstance(wp_state, str)
+
+    @pytest.mark.asyncio
+    async def test_get_snapshot_consistency(self, app_state: AppState):
+        # After two coil updates, the snapshot reflects both fields atomically.
+        # Coil names follow COIL_SENSOR_FIELD_MAP: "o_verdichter" maps to verdichter (A3).
+        await app_state.update_coil_from_modbus("o_verdichter", True)
+        await app_state.update_coil_from_modbus("ventil_ww", False)
+        sensoren, wp_state = await app_state.get_snapshot()
+        from wp_state_machine.core.models import WPState
+        assert sensoren.verdichter is True
+        assert sensoren.ventil_ww is False
+        assert wp_state == WPState.HEIZUNG
