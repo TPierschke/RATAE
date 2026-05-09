@@ -277,14 +277,15 @@
       case 'BEREIT':
         return 'Anlage in Bereitschaft';
       case 'HEIZUNG': {
-        // UVR-Hysterese: WP schaltet AUS wenn Ruecklauf >= Vorlauf-Soll,
-        // EIN wenn RL <= Vorlauf-Soll - 4K (4K Ein/Aus-Differenz).
-        // Quelle: knowledge_waermepumpe.md
+        // UVR-Hysterese: WP schaltet AUS wenn Ruecklauf >= Vorlauf-Soll + 4K,
+        // EIN wenn RL <= Vorlauf-Soll (4K Hub auf dem RL).
+        // Quelle: User-Korrektur 2026-05-09 + knowledge_waermepumpe.md
         var vlSoll = typeof state.vorlauf_soll === 'number' ? state.vorlauf_soll : null;
         var rl = typeof state.ruecklauf === 'number' ? state.ruecklauf : null;
         if (rl !== null && vlSoll !== null) {
           trackHeizungSample(rl);
-          var diff = vlSoll - rl;
+          var rlAus = vlSoll + 4;
+          var diff = rlAus - rl;
           if (diff > 0.1) {
             var etaResult = calcHeizungEta(diff);
             var etaPart;
@@ -297,9 +298,9 @@
             } else {
               etaPart = '';
             }
-            return 'Verdichter ' + verdichterLabel + ' · RL ' + rl.toFixed(1) + '° · noch ' + diff.toFixed(1) + '° bis Abschaltung (Soll ' + vlSoll.toFixed(1) + '°)' + etaPart;
+            return 'Verdichter ' + verdichterLabel + ' · RL ' + rl.toFixed(1) + '° · noch ' + diff.toFixed(1) + '° bis Aus (' + rlAus.toFixed(1) + '°)' + etaPart;
           }
-          return 'Verdichter ' + verdichterLabel + ' · RL ' + rl.toFixed(1) + '° · ueber Aus-Punkt (Soll ' + vlSoll.toFixed(1) + '°)';
+          return 'Verdichter ' + verdichterLabel + ' · RL ' + rl.toFixed(1) + '° · am Aus-Punkt (' + rlAus.toFixed(1) + '°)';
         }
         return 'Verdichter ' + verdichterLabel + ' · Vorlauf ' + vorlauf;
       }
