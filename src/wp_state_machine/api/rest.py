@@ -90,8 +90,16 @@ class AppState:
         self.cmi_reachable: Optional[bool] = None
         self.config: Any = None  # Config (gesetzt beim Startup)
         self.startup_time: Optional[str] = None  # ISO8601 UTC, gesetzt in __main__.main()
-        self.setpoints: dict[str, Any] = {}  # Funktions-Sollwerte (ww_soll_normal, ww_soll_legio, etc.)
-        self.setpoints_last_update: Optional[datetime] = None  # Timestamp des letzten setpoints-Updates
+        self.setpoints: dict[str, Any] = {}  # Function setpoints (ww_soll_normal, raum_ist, etc.)
+        self.setpoints_last_update: Optional[datetime] = None  # Timestamp of last setpoints update
+        self.setpoints_path = Path("~/.config/wp-state-machine/setpoints.json").expanduser()
+        try:
+            if self.setpoints_path.exists():
+                data = json.loads(self.setpoints_path.read_text(encoding="utf-8"))
+                if isinstance(data, dict):
+                    self.setpoints = data
+        except (OSError, json.JSONDecodeError, TypeError):
+            pass
         self.theme = "live"
         self.theme_path = Path("~/.config/wp-state-machine/theme.json").expanduser()
         try:
@@ -103,6 +111,16 @@ class AppState:
         except (OSError, json.JSONDecodeError, TypeError):
             pass
         self._lock = asyncio.Lock()
+
+    async def save_setpoints(self, setpoints: dict[str, Any]) -> None:
+        """Persist setpoints atomically to ~/.config/wp-state-machine/setpoints.json."""
+        async with self._lock:
+            self.setpoints = setpoints
+            self.setpoints_last_update = datetime.now(timezone.utc)
+            self.setpoints_path.parent.mkdir(parents=True, exist_ok=True)
+            tmp_path = self.setpoints_path.with_suffix(self.setpoints_path.suffix + ".tmp")
+            tmp_path.write_text(json.dumps(setpoints), encoding="utf-8")
+            tmp_path.replace(self.setpoints_path)
 
     async def set_theme(self, theme: str) -> None:
         if theme not in _AVAILABLE_THEMES:

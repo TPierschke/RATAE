@@ -11,10 +11,10 @@
 
   var POLL_INTERVAL_MS = 5000;
 
-  // Generic sliding-window dT/dt tracker fuer ETA in HEIZUNG / WARMWASSER /
-  // LEGIONELLENSCHUTZ. Pro Mode: eigener Tracker, eigener localStorage-Key,
-  // eigener Default-Rate (Erfahrungswerte). Live-Rate ueberschreibt Default
-  // sobald >=15s Tracking eine positive Steigung zeigt.
+  // Generic sliding-window dT/dt tracker for ETA in HEIZUNG / WARMWASSER /
+  // LEGIONELLENSCHUTZ. Per mode: own tracker, own localStorage key, own
+  // default rate (empirical). Live rate overrides the default as soon as
+  // >=15s of tracking shows a positive slope.
   var ETA_STICKY_MS = 60 * 1000;
   var trackers = {
     heating: {
@@ -24,12 +24,12 @@
     },
     ww: {
       samples: [], lastEta: null, lastEtaT: 0,
-      defaultRate: 0.5,      // deg/min, typischer WW-Heizverlauf (Annahme, wird live korrigiert)
+      defaultRate: 0.5,      // deg/min, typical WW heating slope (assumption, corrected live)
       lsKey: 'wpsm.rate.ww'
     },
     legio: {
       samples: [], lastEta: null, lastEtaT: 0,
-      defaultRate: 0.4,      // deg/min, Legio braucht laenger weil hoehere End-Temp
+      defaultRate: 0.4,      // deg/min, legio takes longer due to higher target temp
       lsKey: 'wpsm.rate.legio'
     }
   };
@@ -250,7 +250,7 @@
 
     state.wp_state = !isNil(data.wp_state) ? data.wp_state : (!isNil(data.state) ? data.state : null);
     state.state = state.wp_state;
-    state.setpoints = setpoints;  // Funktions-Sollwerte fuer applyWwSollBindings
+    state.setpoints = setpoints;  // function setpoints for applyWwSollBindings
 
     return state;
   }
@@ -260,7 +260,15 @@
     if (!KNOWN_KEY_SET.has(key) && !KNOWN_KEY_SET.has(resolvedKey)) {
       return { known: false, value: null };
     }
-    return { known: true, value: hasOwn(state, resolvedKey) ? state[resolvedKey] : null };
+    var value = hasOwn(state, resolvedKey) ? state[resolvedKey] : null;
+    // Fall back to state.setpoints for crawl-only fields (raum_ist, ww_ist, ...)
+    if (value === null || value === undefined) {
+      var sp = state.setpoints || {};
+      if (hasOwn(sp, resolvedKey) && sp[resolvedKey] !== null && sp[resolvedKey] !== undefined) {
+        value = sp[resolvedKey];
+      }
+    }
+    return { known: true, value: value };
   }
 
   function setBinaryClasses(el, value, alarmMode) {
@@ -301,7 +309,7 @@
     var verdichter = normalizeBool(state.verdichter);
     var verdichterLabel = verdichter === true ? 'aktiv' : (verdichter === false ? 'aus' : '---');
 
-    // Reset-Logik: nur der zum aktiven State passende Tracker bleibt aktiv
+    // Reset logic: only the tracker matching the active state stays alive.
     var activeMode = null;
     if (rawState === 'HEIZUNG') activeMode = 'heating';
     else if (rawState === 'WARMWASSER') activeMode = 'ww';
@@ -312,8 +320,8 @@
       case 'BEREIT':
         return 'Anlage in Bereitschaft';
       case 'HEIZUNG': {
-        // UVR-Hysterese: WP schaltet AUS wenn Ruecklauf >= Vorlauf-Soll + 4K
-        // (4K Hub liegt OBERHALB des Soll). Quelle: User-Korrektur 2026-05-09.
+        // UVR hysteresis: HP switches OFF when return >= flow setpoint + 4K
+        // (the 4K span sits ABOVE the setpoint). Source: user correction 2026-05-09.
         var vlSoll = typeof state.vorlauf_soll === 'number' ? state.vorlauf_soll : null;
         var rl = typeof state.ruecklauf === 'number' ? state.ruecklauf : null;
         if (rl !== null && vlSoll !== null) {
@@ -328,8 +336,8 @@
         return 'Verdichter ' + verdichterLabel + ' · Vorlauf ' + vorlauf;
       }
       case 'WARMWASSER': {
-        // WP heizt bis WW-Ist >= WW-Soll. Soll kommt aus state.setpoints.ww_soll_normal,
-        // Fallback 50° (Standard im UVR F:2 WW_ANF.1).
+        // HP heats until WW actual >= WW setpoint. Setpoint comes from
+        // state.setpoints.ww_soll_normal, fallback 50 deg (UVR F:2 WW_ANF.1 default).
         var ww = typeof state.warmwasser === 'number' ? state.warmwasser : null;
         var spWw = state.setpoints || {};
         var wwSoll = typeof spWw.ww_soll_normal === 'number' ? spWw.ww_soll_normal : 50;
@@ -344,7 +352,7 @@
         return 'WW-Bereitung · Vorlauf ' + vorlauf;
       }
       case 'LEGIONELLENSCHUTZ': {
-        // F:9 WW_ANF.2 Legionellenschutz, Ziel 70°C (knowledge_waermepumpe.md).
+        // F:9 WW_ANF.2 legionella protection, target 70 deg C (knowledge_waermepumpe.md).
         var wwL = typeof state.warmwasser === 'number' ? state.warmwasser : null;
         var ziel = 70;
         if (wwL !== null) {
