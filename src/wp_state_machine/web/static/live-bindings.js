@@ -199,8 +199,23 @@
     switch (rawState) {
       case 'BEREIT':
         return 'Anlage in Bereitschaft';
-      case 'HEIZUNG':
-        return 'Verdichter ' + verdichterLabel + ' · Vorlauf ' + vorlauf;
+      case 'HEIZUNG': {
+        var sp = state.setpoints || {};
+        var vlSoll = typeof sp.vorlauf_soll === 'number' ? sp.vorlauf_soll : null;
+        var vlIst = typeof state.vorlauf === 'number' ? state.vorlauf : null;
+        var txt = 'Verdichter ' + verdichterLabel + ' · Vorlauf ' + vorlauf;
+        if (vlIst !== null && vlSoll !== null) {
+          var diff = vlSoll - vlIst;
+          if (diff > 0.1) {
+            txt += ' · noch ' + diff.toFixed(1) + '° bis Soll';
+          } else if (diff < -0.1) {
+            txt += ' · ' + Math.abs(diff).toFixed(1) + '° ueber Soll';
+          } else {
+            txt += ' · am Soll';
+          }
+        }
+        return txt;
+      }
       case 'WARMWASSER':
         return 'WW-Bereitung · Vorlauf ' + vorlauf;
       case 'LEGIONELLENSCHUTZ':
