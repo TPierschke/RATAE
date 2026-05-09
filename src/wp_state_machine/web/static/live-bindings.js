@@ -270,12 +270,20 @@
     });
   }
 
+  function applyWwSollBindings(state) {
+    document.querySelectorAll('[data-bind-ww-soll]').forEach(function (el) {
+      var raw = (state.wp_state || '').toUpperCase();
+      el.textContent = (raw === 'LEGIONELLENSCHUTZ') ? '70°' : '50°';
+    });
+  }
+
   function applyState(state) {
     applyTextBindings(state);
     applyBooleanTextBindings(state);
     applyBinaryBindings(state, 'data-bind-bool', false);
     applyBinaryBindings(state, 'data-bind-alarm', true);
     applyStateBindings(state);
+    applyWwSollBindings(state);
   }
 
   function log404Once() {

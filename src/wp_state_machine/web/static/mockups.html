@@ -18,7 +18,6 @@ iframe{width:100%;height:calc(100vh - 48px);border:0;display:block}
 <body>
 <div class="bar">
   <h1>RATAE Mockups</h1>
-  <a href="?m=a" id="la">A · Neon Console</a>
   <a href="?m=b" id="lb" class="dropped" title="raus">B · Editorial Brutalism</a>
   <a href="?m=c" id="lc">C · Glass Future</a>
   <a href="?m=d" id="ld">D · Kinetic Maximalism</a>
@@ -35,7 +34,7 @@ iframe{width:100%;height:calc(100vh - 48px);border:0;display:block}
 <script>
 const m = (new URLSearchParams(location.search)).get('m') || 'a';
 document.getElementById('frame').src = '/ui/mockup-' + m + '.html';
-['a','b','c','d','e','f','g','h','i','j','k'].forEach(k => {
+['b','c','d','e','f','g','h','i','j','k'].forEach(k => {
   const el = document.getElementById('l'+k);
   if (k === m) el.classList.add('active');
 });

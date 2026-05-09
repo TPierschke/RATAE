@@ -65,7 +65,7 @@ log = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 
-_AVAILABLE_THEMES = ("live", "a", "c", "d", "e", "f", "g", "h", "i", "j", "k")
+_AVAILABLE_THEMES = ("live", "c", "d", "e", "f", "g", "h", "i", "j", "k")
 
 
 class ThemeRequest(BaseModel):
