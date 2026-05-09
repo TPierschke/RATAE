@@ -452,14 +452,13 @@ button {
     <article class="panel glass">
       <div class="panel-head">
         <div class="title">IO Grid</div>
-        <div class="sub mono">6 Aktoren</div>
+        <div class="sub mono">5 Zeilen / 6 Aktoren</div>
       </div>
       <div class="io-grid mono">
         <div class="io-row"><span>Heizkreispumpe <small>A1</small></span><span class="io-pill" data-bind-bool="pumpe_hzkr" data-bind-text="pumpe_hzkr:an|aus">---</span></div>
         <div class="io-row"><span>Ladepumpe <small>A2</small></span><span class="io-pill" data-bind-bool="ladepumpe" data-bind-text="ladepumpe:an|aus">---</span></div>
         <div class="io-row"><span>Warmwasserventil <small>A7</small></span><span class="io-pill" data-bind-bool="ventil_ww" data-bind-text="ventil_ww:WW-Pos|Heiz-Pos">---</span></div>
-        <div class="io-row"><span>Heizstab HZ <small>A8</small></span><span class="io-pill" data-bind-alarm="heizstab_hz" data-bind-text="heizstab_hz:aktiv|inaktiv">---</span></div>
-        <div class="io-row"><span>Heizstab WW <small>A9</small></span><span class="io-pill" data-bind-alarm="heizstab_ww" data-bind-text="heizstab_ww:aktiv|inaktiv">---</span></div>
+        <div class="io-row"><span>Heizstaebe <small>A8 / A9</small></span><span style="display:inline-flex; gap:6px; align-items:center;"><span class="io-pill" data-bind-alarm="heizstab_hz" data-bind-text="heizstab_hz:HZ aktiv|HZ aus">---</span><span class="io-pill" data-bind-alarm="heizstab_ww" data-bind-text="heizstab_ww:WW aktiv|WW aus">---</span></span></div>
         <div class="io-row"><span>Alarm <small>A5</small></span><span class="io-pill" data-bind-alarm="alarm" data-bind-text="alarm:AKTIV|clear">---</span></div>
       </div>
     </article>
