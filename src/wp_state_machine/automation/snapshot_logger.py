@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from datetime import datetime, timezone
 
 from wp_state_machine.core.models import TelemetryRecord
 
@@ -29,6 +30,9 @@ async def snapshot_loop(app_state, interval: int = DEFAULT_INTERVAL) -> None:
         try:
             if app_state.postgres and app_state.postgres.is_connected:
                 record = TelemetryRecord.from_sensoren(app_state.sensoren, app_state.wp_state)
+                # Snapshot timestamp = wall-clock now, not last sensor update.
+                # Otherwise stale sensors produce gaps + duplicate timestamps in time-series.
+                record.timestamp = datetime.now(timezone.utc)
                 await app_state.postgres.insert_telemetry(record.model_dump())
             else:
                 log.warning("snapshot_logger: Postgres nicht verbunden, Snapshot verloren")
