@@ -12,11 +12,32 @@
   var POLL_INTERVAL_MS = 5000;
 
   // Sliding-window dT/dt tracker fuer ETA-Schaetzung im HEIZUNG-Mode.
-  // Resettet sich automatisch wenn der State nicht mehr HEIZUNG ist.
-  // Last-good ETA wird "sticky" gehalten, damit die Anzeige nicht zwischen
-  // Zahl und 'wird ermittelt' hin- und herspringt wenn RL kurzzeitig stagniert.
+  // Strategy: localStorage-cached rate from previous heating cycles → instant
+  // estimate on boot. Live rate replaces it once 15s of tracking yield a
+  // positive RL slope. Last-good ETA is sticky for 60s.
+  // Default rate 0.115 deg/min derives from observed cycle 2026-05-09 18:24-49
+  // (RL 27.0 -> 29.3 over 20 min). See knowledge_waermepumpe.md.
   var heizungTracker = { samples: [], lastEta: null, lastEtaT: 0 };
   var ETA_STICKY_MS = 60 * 1000;
+  var DEFAULT_RL_RATE = 0.115; // deg per minute, observed baseline
+  var LS_RATE_KEY = 'wpsm.heizung_rl_rate';
+
+  function loadStoredRate() {
+    try {
+      var raw = window.localStorage.getItem(LS_RATE_KEY);
+      if (raw) {
+        var r = parseFloat(raw);
+        if (r > 0.02 && r < 1.0) return r;
+      }
+    } catch (e) {}
+    return DEFAULT_RL_RATE;
+  }
+
+  function storeRate(rate) {
+    try {
+      window.localStorage.setItem(LS_RATE_KEY, rate.toFixed(4));
+    } catch (e) {}
+  }
 
   function trackHeizungSample(rl) {
     var now = Date.now();
@@ -28,7 +49,7 @@
   }
 
   function calcHeizungEta(diffToOff) {
-    // Returns { eta: <minutes|null>, status: 'warming'|'stagnant'|'ok'|'unrealistic'|'sticky' }
+    // Returns { eta: <minutes|null>, status: 'estimate'|'ok'|'sticky'|'stagnant'|'warming' }
     var now = Date.now();
     var s = heizungTracker.samples;
     if (s.length >= 2) {
@@ -43,18 +64,21 @@
           var rounded = Math.round(etaMin);
           heizungTracker.lastEta = rounded;
           heizungTracker.lastEtaT = now;
+          storeRate(rate);
           return { eta: rounded, status: 'ok' };
         }
       }
     }
-    // Sticky last-good
     if (heizungTracker.lastEta !== null && now - heizungTracker.lastEtaT < ETA_STICKY_MS) {
       return { eta: heizungTracker.lastEta, status: 'sticky' };
     }
-    if (s.length < 2) return { eta: null, status: 'warming' };
-    var dtMinFinal = (s[s.length - 1].t - s[0].t) / 60000;
-    if (dtMinFinal < 0.25) return { eta: null, status: 'warming' };
-    return { eta: null, status: 'stagnant' };
+    // Fallback: cached / default rate -> instant estimate
+    var fallback = loadStoredRate();
+    var fallbackEta = diffToOff / fallback;
+    if (fallbackEta > 0 && fallbackEta <= 180) {
+      return { eta: Math.round(fallbackEta), status: 'estimate' };
+    }
+    return { eta: null, status: 'warming' };
   }
   var MODE_NAMES = {
     1: 'Standby',
@@ -266,10 +290,10 @@
             var etaPart;
             if (etaResult.status === 'ok' || etaResult.status === 'sticky') {
               etaPart = ' · ETA ~' + etaResult.eta + ' min';
+            } else if (etaResult.status === 'estimate') {
+              etaPart = ' · ETA ~' + etaResult.eta + ' min (Schaetzung)';
             } else if (etaResult.status === 'warming') {
               etaPart = ' · ETA wird ermittelt...';
-            } else if (etaResult.status === 'stagnant') {
-              etaPart = ' · RL stagniert';
             } else {
               etaPart = '';
             }
