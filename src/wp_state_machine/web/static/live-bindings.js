@@ -135,6 +135,7 @@
   function normalizeState(payload) {
     var data = payload && typeof payload === 'object' ? payload : {};
     var sensors = data.sensoren && typeof data.sensoren === 'object' ? data.sensoren : {};
+    var setpoints = data.setpoints && typeof data.setpoints === 'object' ? data.setpoints : {};
     var state = {};
 
     KNOWN_KEYS.forEach(function (key) {
@@ -144,6 +145,7 @@
 
     state.wp_state = !isNil(data.wp_state) ? data.wp_state : (!isNil(data.state) ? data.state : null);
     state.state = state.wp_state;
+    state.setpoints = setpoints;  // Funktions-Sollwerte fuer applyWwSollBindings
 
     return state;
   }
@@ -273,7 +275,15 @@
   function applyWwSollBindings(state) {
     document.querySelectorAll('[data-bind-ww-soll]').forEach(function (el) {
       var raw = (state.wp_state || '').toUpperCase();
-      el.textContent = (raw === 'LEGIONELLENSCHUTZ') ? '70°' : '50°';
+      var sp = state.setpoints || {};
+      var soll;
+      if (raw === 'LEGIONELLENSCHUTZ') {
+        soll = sp.ww_soll_legio;
+      } else {
+        soll = sp.ww_soll_normal;
+      }
+      var displayValue = soll != null ? Math.round(soll) + '°' : ((raw === 'LEGIONELLENSCHUTZ') ? '70°' : '50°');
+      el.textContent = displayValue;
     });
   }
 

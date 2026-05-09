@@ -243,6 +243,11 @@ async def main() -> None:
     tasks.append(asyncio.create_task(snapshot_loop(app_state)))
     log.info("Snapshot-Logger aktiviert (alle 5 min, Postgres-Tabelle telemetry)")
 
+    # Setpoints-Logger: alle 5 min Funktions-Sollwerte cachen
+    from wp_state_machine.automation.setpoints_logger import setpoints_loop
+    tasks.append(asyncio.create_task(setpoints_loop(app_state, config)))
+    log.info("Setpoints-Logger aktiviert (alle 5 min, /state Endpoint)")
+
     # Modbus-Slave (primaere Datenquelle) — parallel zu Poll-Loop
     if config.modbus_enabled:
         from wp_state_machine.ingest.modbus_slave import run as modbus_run

@@ -90,6 +90,8 @@ class AppState:
         self.cmi_reachable: Optional[bool] = None
         self.config: Any = None  # Config (gesetzt beim Startup)
         self.startup_time: Optional[str] = None  # ISO8601 UTC, gesetzt in __main__.main()
+        self.setpoints: dict[str, Any] = {}  # Funktions-Sollwerte (ww_soll_normal, ww_soll_legio, etc.)
+        self.setpoints_last_update: Optional[datetime] = None  # Timestamp des letzten setpoints-Updates
         self.theme = "live"
         self.theme_path = Path("~/.config/wp-state-machine/theme.json").expanduser()
         try:
@@ -337,12 +339,13 @@ def create_app(state: Optional[AppState] = None) -> FastAPI:
 
     @app.get("/state")
     async def get_state() -> dict[str, Any]:
-        """Aktueller WP-State und alle Sensor-Werte."""
+        """Aktueller WP-State, Sensor-Werte und Funktions-Sollwerte."""
         return {
             "state": _state.wp_state,
             "dry_run": _state.dry_run,
             "last_update": _state.last_update.isoformat() if _state.last_update else None,
             "sensoren": _state.sensoren.model_dump(),
+            "setpoints": _state.setpoints,
         }
 
     @app.get("/api/reset")

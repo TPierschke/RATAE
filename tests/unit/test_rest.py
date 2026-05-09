@@ -96,6 +96,30 @@ class TestState:
         resp = await client.get("/state")
         assert resp.json()["state"] == WPState.HEIZUNG
 
+    @pytest.mark.asyncio
+    async def test_state_includes_setpoints(self, client: AsyncClient):
+        """Endpoint /state soll setpoints-Feld enthalten."""
+        resp = await client.get("/state")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "setpoints" in data
+        # Setpoints ist ein dict (initial leer)
+        assert isinstance(data["setpoints"], dict)
+
+    @pytest.mark.asyncio
+    async def test_state_setpoints_from_appstate(self, app_state: AppState, client: AsyncClient):
+        """AppState.setpoints werden in /state-Response exposed."""
+        app_state.setpoints = {
+            "ww_soll_normal": 50.0,
+            "ww_soll_legio": 70.0,
+            "vorlauf_soll_min": 20.0,
+        }
+        resp = await client.get("/state")
+        data = resp.json()
+        assert data["setpoints"]["ww_soll_normal"] == 50.0
+        assert data["setpoints"]["ww_soll_legio"] == 70.0
+        assert data["setpoints"]["vorlauf_soll_min"] == 20.0
+
 
 class TestTelemetry:
     @pytest.mark.asyncio
