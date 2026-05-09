@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RATAE · Heatpump Controller</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Hanken+Grotesk:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #050507;
+      --panel: rgba(8,10,14,.72);
+      --panel-2: rgba(10,12,17,.92);
+      --text: #eef2f6;
+      --muted: rgba(221,228,236,.58);
+      --cyan: #00f0ff;
+      --chrome:
+        linear-gradient(
+          120deg,
+          #7b7e85 0%,
+          #c0c4cc 12%,
+          #f0f2f5 24%,
+          #888a90 49%,
+          #d8dde3 70%,
+          #6e7179 84%,
+          #f5f7fa 100%
+        );
+      --shell-shadow: 0 24px 80px rgba(0,0,0,.55);
+      --clip: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 22px 100%, 0 calc(100% - 22px));
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      color: var(--text);
+      font-family: "Hanken Grotesk", sans-serif;
+      background:
+        radial-gradient(circle at 18% 10%, rgba(255,255,255,.08), transparent 26%),
+        radial-gradient(circle at 82% 12%, rgba(0,240,255,.08), transparent 18%),
+        linear-gradient(108deg, #040406 0%, #111319 16%, #050507 28%, #171a20 39%, #050507 53%, #12151b 67%, #050507 100%);
+    }
+
+    body { position: relative; overflow-x: hidden; }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .17;
+      mix-blend-mode: screen;
+      background:
+        linear-gradient(to bottom, rgba(255,255,255,.02), transparent),
+        repeating-linear-gradient(90deg, rgba(255,255,255,.018) 0 1px, transparent 1px 4px),
+        repeating-linear-gradient(0deg, rgba(255,255,255,.012) 0 1px, transparent 1px 3px);
+    }
+
+    .shell {
+      width: min(1180px, calc(100vw - 28px));
+      margin: 22px auto;
+      padding: 18px;
+      border: 1px solid transparent;
+      border-radius: 28px;
+      background:
+        linear-gradient(var(--panel-2), var(--panel-2)) padding-box,
+        var(--chrome) border-box;
+      box-shadow: var(--shell-shadow), inset 0 1px 0 rgba(255,255,255,.16);
+      backdrop-filter: blur(22px);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 8px 2px 18px;
+      border-bottom: 1px solid rgba(255,255,255,.1);
+      font: 12px/1.2 "JetBrains Mono", monospace;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: rgba(240,242,245,.84);
+    }
+    .topbar::before {
+      content: "";
+      flex: 1;
+      min-width: 48px;
+      height: 1px;
+      background: var(--chrome);
+      box-shadow: 0 0 14px rgba(255,255,255,.18);
+    }
+
+    .hero, .layout { display: grid; gap: 18px; }
+    .hero { grid-template-columns: 1.25fr .75fr; padding: 26px 0 14px; align-items: end; }
+    .layout { grid-template-columns: 1.1fr .9fr; margin-top: 10px; }
+
+    .telemetry { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 18px; }
+    .side, .hero-meta, .control-row { display: grid; gap: 14px; }
+    .hero-meta { gap: 12px; }
+
+    .eyebrow, .label, .section-label {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .eyebrow { margin: 0 0 10px; }
+
+    h1 {
+      margin: 0;
+      font: clamp(72px, 16vw, 168px)/.9 "Anton", sans-serif;
+      letter-spacing: .02em;
+      text-transform: uppercase;
+      color: transparent;
+      background: linear-gradient(180deg, #fff 0%, #d8dde3 22%, #8b8f96 48%, #f0f2f5 62%, #7b8088 82%, #fafcff 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      text-shadow: 0 0 24px rgba(255,255,255,.08), 0 0 42px rgba(0,240,255,.06);
+    }
+
+    .subtitle {
+      margin: 12px 0 0;
+      font-size: clamp(15px, 2vw, 22px);
+      font-weight: 800;
+      letter-spacing: .04em;
+      color: rgba(240,242,245,.88);
+    }
+
+    .tile, .card, .io-panel, .control-panel {
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+      border: 1px solid transparent;
+      clip-path: var(--clip);
+      backdrop-filter: blur(18px);
+      background:
+        linear-gradient(var(--panel), var(--panel)) padding-box,
+        var(--chrome) border-box;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 0 0 1px rgba(255,255,255,.025);
+    }
+
+    .tile::before, .card::before, .io-panel::before, .control-panel::before {
+      content: "";
+      position: absolute;
+      inset: -30%;
+      pointer-events: none;
+      transform: translateX(-42%) rotate(8deg);
+      transition: transform .9s ease;
+      background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.12) 49%, rgba(255,255,255,.02) 54%, transparent 65%);
+    }
+    .tile:hover::before, .card:hover::before, .io-panel:hover::before, .control-panel:hover::before {
+      transform: translateX(24%) rotate(8deg);
+    }
+
+    .tile { min-height: 118px; padding: 18px 20px; display: flex; flex-direction: column; justify-content: space-between; }
+    .tile .value { font-size: clamp(28px, 4vw, 42px); font-weight: 800; letter-spacing: -.04em; }
+
+    .card { min-height: 154px; padding: 18px 20px 20px; display: flex; flex-direction: column; justify-content: space-between; }
+    .card .value { font-size: clamp(42px, 5vw, 68px); font-weight: 800; letter-spacing: -.06em; line-height: .92; }
+    .unit { margin-left: 4px; font-size: 18px; color: rgba(240,242,245,.72); }
+
+    .readout, .footer {
+      font-family: "JetBrains Mono", monospace;
+      text-transform: uppercase;
+    }
+    .readout { font-size: 12px; letter-spacing: .08em; color: rgba(0,240,255,.78); }
+
+    .io-panel, .control-panel { padding: 18px 20px 20px; }
+
+    .io-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 12px 14px;
+      margin-top: 16px;
+    }
+    .io-item {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 14px;
+      background: rgba(255,255,255,.03);
+      font-size: 14px; font-weight: 800; letter-spacing: .02em;
+    }
+    .dot {
+      width: 10px; height: 10px; flex: 0 0 auto; border-radius: 999px;
+      background: rgba(255,255,255,.12);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+    }
+    .dot.on {
+      background: var(--cyan);
+      box-shadow: 0 0 0 1px rgba(0,240,255,.34), 0 0 10px rgba(0,240,255,.9), 0 0 20px rgba(0,240,255,.3);
+    }
+
+    select, button { width: 100%; border: 1px solid transparent; border-radius: 16px; font: inherit; }
+    select {
+      appearance: none; padding: 15px 16px; outline: none;
+      color: var(--text); font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+      background: linear-gradient(rgba(10,12,17,.92), rgba(10,12,17,.92)) padding-box, var(--chrome) border-box;
+    }
+    button {
+      padding: 17px 18px; cursor: pointer;
+      color: #031318; font-weight: 800; letter-spacing: .09em; text-transform: uppercase;
+      background:
+        linear-gradient(180deg, #7bfbff 0%, #00f0ff 48%, #64f9ff 100%) padding-box,
+        linear-gradient(135deg, #d6fbff 0%, #00f0ff 48%, #b9fbff 100%) border-box;
+      box-shadow: 0 0 0 1px rgba(0,240,255,.35), 0 0 22px rgba(0,240,255,.28), inset 0 1px 0 rgba(255,255,255,.55);
+    }
+
+    .footer {
+      margin-top: 18px; padding-top: 14px;
+      border-top: 1px solid rgba(255,255,255,.08);
+      font-size: 11px; letter-spacing: .14em; color: rgba(216,221,227,.5);
+    }
+
+    @media (max-width: 960px) {
+      .hero, .layout { grid-template-columns: 1fr; }
+      .hero-meta { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    }
+    @media (max-width: 640px) {
+      .shell { width: min(100vw - 14px, 100%); margin: 7px auto; padding: 14px; border-radius: 22px; }
+      .telemetry, .hero-meta, .io-grid { grid-template-columns: 1fr; }
+      .topbar { font-size: 10px; letter-spacing: .16em; flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="topbar">RATAE / WPSM / DRY-RUN / MODBUS ONLINE / SSE LIVE</div>
+
+    <section class="hero">
+      <div>
+        <div class="eyebrow">Systemstatus</div>
+        <h1>HEIZUNG</h1>
+        <p class="subtitle">Verdichter aktiv · Vorlauf 36.4°</p>
+      </div>
+
+      <div class="hero-meta">
+        <article class="tile">
+          <div class="label">Leistungsmodus</div>
+          <div class="value">Normal</div>
+        </article>
+        <article class="tile">
+          <div class="label">Druckdifferenz</div>
+          <div class="value">0.82 bar</div>
+        </article>
+      </div>
+    </section>
+
+    <section class="layout">
+      <div class="telemetry">
+        <article class="card">
+          <div class="label">Aussen</div>
+          <div class="value">+5.2<span class="unit">°</span></div>
+          <div class="readout">sensor / ambient</div>
+        </article>
+        <article class="card">
+          <div class="label">Warmwasser</div>
+          <div class="value">52.8<span class="unit">°</span></div>
+          <div class="readout">tank / domestic hot water</div>
+        </article>
+        <article class="card">
+          <div class="label">Vorlauf Puffer</div>
+          <div class="value">36.4<span class="unit">°</span></div>
+          <div class="readout">buffer / supply line</div>
+        </article>
+        <article class="card">
+          <div class="label">Ruecklauf FBH</div>
+          <div class="value">28.1<span class="unit">°</span></div>
+          <div class="readout">return / floor heating</div>
+        </article>
+      </div>
+
+      <div class="side">
+        <section class="io-panel">
+          <div class="section-label">IO Grid</div>
+          <div class="io-grid">
+            <div class="io-item"><span>Verdichter</span><span class="dot on"></span></div>
+            <div class="io-item"><span>Heizkreis Pumpe</span><span class="dot on"></span></div>
+            <div class="io-item"><span>3WV Heizen</span><span class="dot on"></span></div>
+            <div class="io-item"><span>3WV Warmwasser</span><span class="dot"></span></div>
+            <div class="io-item"><span>Heizstab</span><span class="dot"></span></div>
+            <div class="io-item"><span>Zirkulation</span><span class="dot on"></span></div>
+          </div>
+        </section>
+
+        <section class="control-panel">
+          <div class="section-label">Steuerung</div>
+          <div class="control-row">
+            <select aria-label="Betriebsmodus">
+              <option selected>Normal</option>
+              <option>Eco</option>
+              <option>Boost</option>
+              <option>Service</option>
+            </select>
+            <button type="button">LEGIONELLENSCHUTZ STARTEN</button>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <footer class="footer">v0.2.0 · 2026-05-09 · pierschke.net</footer>
+  </main>
+</body>
+</html>

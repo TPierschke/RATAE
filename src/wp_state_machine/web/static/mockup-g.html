@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RATAE — WP State Machine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:#0d1217; --panel:#11161d; --panel2:#0e141a; --line:#2a3440; --text:#d6dde6;
+      --muted:#7f8a96; --muted2:#5f6974; --active:#ffb84c; --ok:#9ca8b5; --off:#4d5660; --alarm:#ff7f7f;
+    }
+    * { box-sizing:border-box; }
+    html,body { margin:0; min-height:100%; background:var(--bg); color:var(--text); }
+    body {
+      font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums slashed-zero;
+      background-image:linear-gradient(rgba(42,52,64,.22) 1px, transparent 1px),linear-gradient(90deg, rgba(42,52,64,.22) 1px, transparent 1px);
+      background-size:24px 24px;
+    }
+    .app { width:min(1500px, calc(100vw - 24px)); margin:12px auto; border:1px solid var(--line); background:var(--panel2); }
+    .status-strip,.header,.grid,.footer { display:grid; }
+    .status-strip { grid-template-columns:repeat(6, minmax(0,1fr)); border-bottom:1px solid var(--line); background:#0b1015; font-size:12px; letter-spacing:.08em; text-transform:uppercase; }
+    .status-strip span { padding:9px 12px; border-right:1px solid var(--line); white-space:nowrap; }
+    .status-strip span:last-child { border-right:0; }
+    .header { grid-template-columns:1fr auto; gap:12px; align-items:end; padding:14px 16px 12px; border-bottom:1px solid var(--line); }
+    .title { margin:0; font-size:30px; font-weight:600; letter-spacing:.03em; text-transform:uppercase; }
+    .host,.section-meta,.unit,.ref,.value-meta,.cell-meta { color:var(--muted); font-size:11px; }
+    .host { letter-spacing:.08em; text-transform:uppercase; text-align:right; }
+    .grid { grid-template-columns:repeat(12, minmax(0,1fr)); gap:10px; padding:10px; }
+    .panel { min-width:0; border:1px solid var(--line); background:var(--panel); }
+    .span-8 { grid-column:span 8; } .span-7 { grid-column:span 7; } .span-5 { grid-column:span 5; } .span-4 { grid-column:span 4; }
+    .panel-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 10px; border-bottom:1px solid var(--line); background:#0d1319; }
+    .section-label,.hero-kicker,.readout-label,.field-label,th,td::before { color:var(--muted); font-size:11px; letter-spacing:.12em; text-transform:uppercase; }
+    .section-meta { color:var(--muted2); text-transform:uppercase; }
+    .hero-body { display:grid; grid-template-columns:1.1fr .9fr; }
+    .hero-state,.hero-side { padding:14px; }
+    .hero-state { border-right:1px solid var(--line); }
+    .hero-kicker { margin:0 0 12px; }
+    .state-value { margin:0 0 8px; font-size:clamp(32px, 5vw, 54px); font-weight:600; line-height:1; letter-spacing:.04em; text-transform:uppercase; }
+    .raw-line,.mini-list,.footer { font-size:12px; line-height:1.6; }
+    .hero-readouts { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; }
+    .readout { border:1px solid var(--line); padding:10px; background:#0d1318; }
+    .readout-label { display:block; font-size:10px; }
+    .readout-value { display:block; margin-top:8px; font-size:24px; font-weight:500; }
+    table { width:100%; table-layout:fixed; border-collapse:collapse; font-size:13px; }
+    th,td { padding:8px 10px; border-right:1px solid var(--line); border-bottom:1px solid var(--line); text-align:left; vertical-align:middle; }
+    th:last-child,td:last-child { border-right:0; }
+    th { font-weight:500; background:#0d1319; }
+    tbody tr.active-row td:first-child { box-shadow:inset 3px 0 0 var(--active); }
+    .num { text-align:right; }
+    .status-cell { display:inline-flex; align-items:center; gap:8px; text-transform:uppercase; }
+    .sq { width:9px; height:9px; border:1px solid var(--muted2); background:transparent; flex:0 0 auto; }
+    .sq.on { background:var(--text); border-color:var(--text); }
+    .sq.clear { background:transparent; border-color:var(--muted2); }
+    .alarm-active { animation:alarm-blink 1.2s steps(2,end) infinite; }
+    .control-grid { display:grid; gap:12px; padding:12px; }
+    .field-label { display:block; margin-bottom:6px; }
+    select,button { width:100%; min-height:38px; border:1px solid var(--line); border-radius:0; background:#0c1116; color:var(--text); font:500 13px "IBM Plex Mono",monospace; letter-spacing:.04em; text-transform:uppercase; padding:8px 10px; }
+    button { text-align:left; cursor:default; }
+    .mini-list { display:grid; gap:6px; padding:12px; border-top:1px solid var(--line); color:var(--muted); }
+    .mini-row { display:grid; grid-template-columns:1fr auto; gap:10px; padding-bottom:6px; border-bottom:1px solid rgba(42,52,64,.55); }
+    .mini-row:last-child { padding-bottom:0; border-bottom:0; }
+    .footer { grid-template-columns:repeat(4, auto); gap:18px; padding:10px 14px; border-top:1px solid var(--line); color:var(--muted); text-transform:uppercase; }
+    @keyframes alarm-blink { 0%,49%,100% { opacity:1; } 50%,75% { opacity:.4; } }
+    @media (max-width:1024px) { .span-8,.span-7,.span-5,.span-4 { grid-column:span 12; } .hero-body { grid-template-columns:1fr; } .hero-state { border-right:0; border-bottom:1px solid var(--line); } }
+    @media (max-width:720px) {
+      .app { width:min(100vw - 8px, 100%); margin:4px auto; }
+      .status-strip,.header,.footer,.hero-readouts { grid-template-columns:1fr; }
+      .host { text-align:left; } table,thead,tbody,tr,th,td { display:block; } thead { display:none; } tbody tr { border-bottom:1px solid var(--line); }
+      td { display:grid; grid-template-columns:96px 1fr; gap:10px; border-right:0; } td::before { content:attr(data-label); } .num { text-align:left; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="status-strip"><span>RATAE/WPSM</span><span>DRY-RUN</span><span>MODBUS ONLINE</span><span>LATENCY 22ms</span><span>UPTIME 14d 03h</span><span>LOAD 0.04</span></div>
+    <header class="header"><h1 class="title">RATAE — WP STATE MACHINE</h1><div class="host">HOST 192.168.178.3:8765</div></header>
+    <section class="grid">
+      <article class="panel span-8">
+        <div class="panel-head"><div class="section-label">[01] BETRIEBSZUSTAND</div><div class="section-meta">CYCLE 01427</div></div>
+        <div class="hero-body">
+          <div class="hero-state">
+            <p class="hero-kicker">AKTIVER MODUS</p>
+            <p class="state-value">HEIZUNG</p>
+            <div class="raw-line">
+              VERDICHTER ACTIVE <span class="value-meta">A3</span> ·
+              VORLAUF 36.4<span class="unit">°C</span> <span class="value-meta">S2</span> ·
+              DELTA +0.4<span class="unit">°C/min</span> <span class="value-meta">D1</span>
+            </div>
+          </div>
+          <div class="hero-side">
+            <div class="hero-readouts">
+              <div class="readout">
+                <span class="readout-label">Soll Vorlauf</span>
+                <span class="readout-value">36.0 <span class="unit">°C</span></span>
+                <span class="value-meta">CTRL-SP1</span>
+              </div>
+              <div class="readout">
+                <span class="readout-label">Verdichterzeit</span>
+                <span class="readout-value">00:14:32 <span class="unit">hh:mm:ss</span></span>
+                <span class="value-meta">A3</span>
+              </div>
+              <div class="readout">
+                <span class="readout-label">Taktfreigabe</span>
+                <span class="readout-value">ENABLE <span class="unit">flag</span></span>
+                <span class="value-meta">F2</span>
+              </div>
+              <div class="readout">
+                <span class="readout-label">Ruecklauf Delta</span>
+                <span class="readout-value">8.3 <span class="unit">K</span></span>
+                <span class="value-meta">S2-S3</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+      <article class="panel span-4">
+        <div class="panel-head"><div class="section-label">[02] STEUERUNG</div><div class="section-meta">LOCAL</div></div>
+        <div class="control-grid">
+          <div>
+            <label class="field-label" for="mode">Betriebsart</label>
+            <select id="mode" aria-label="Betriebsart">
+              <option selected>Normal</option>
+              <option>Absenkung</option>
+              <option>Service</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label" for="task">Funktion</label>
+            <button id="task" type="button">[F9] LEGIONELLENSCHUTZ START</button>
+          </div>
+        </div>
+        <div class="mini-list">
+          <div class="mini-row"><span>Schreibsperre</span><span>OFF <span class="cell-meta">MB-W1</span></span></div>
+          <div class="mini-row"><span>Freigabe Heizung</span><span>ON <span class="cell-meta">F1</span></span></div>
+          <div class="mini-row"><span>Freigabe Warmwasser</span><span>ON <span class="cell-meta">F3</span></span></div>
+        </div>
+      </article>
+      <article class="panel span-7">
+        <div class="panel-head"><div class="section-label">[03] TELEMETRIE</div><div class="section-meta">SENSOR BUS A</div></div>
+        <table aria-label="Telemetry table">
+          <thead>
+            <tr>
+              <th style="width:14%;">Sensor</th>
+              <th style="width:30%;">Label</th>
+              <th style="width:18%;" class="num">Value</th>
+              <th style="width:16%;">Unit</th>
+              <th style="width:22%;">Ref</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td data-label="Sensor">S1</td>
+              <td data-label="Label">Aussen</td>
+              <td data-label="Value" class="num">+5.2</td>
+              <td data-label="Unit"><span class="unit">°C</span></td>
+              <td data-label="Ref"><span class="ref">ambient</span></td>
+            </tr>
+            <tr>
+              <td data-label="Sensor">S4</td>
+              <td data-label="Label">Warmwasser</td>
+              <td data-label="Value" class="num">52.8</td>
+              <td data-label="Unit"><span class="unit">°C</span></td>
+              <td data-label="Ref"><span class="ref">tank</span></td>
+            </tr>
+            <tr class="active-row">
+              <td data-label="Sensor">S2</td>
+              <td data-label="Label">Vorlauf</td>
+              <td data-label="Value" class="num">36.4</td>
+              <td data-label="Unit"><span class="unit">°C</span></td>
+              <td data-label="Ref"><span class="ref">buffer</span></td>
+            </tr>
+            <tr>
+              <td data-label="Sensor">S3</td>
+              <td data-label="Label">Ruecklauf</td>
+              <td data-label="Value" class="num">28.1</td>
+              <td data-label="Unit"><span class="unit">°C</span></td>
+              <td data-label="Ref"><span class="ref">floor</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+      <article class="panel span-5">
+        <div class="panel-head"><div class="section-label">[04] AKTOREN / IO</div><div class="section-meta">ACTOR BUS B</div></div>
+        <table aria-label="IO table">
+          <thead>
+            <tr>
+              <th style="width:12%;">ID</th>
+              <th style="width:33%;">Name</th>
+              <th style="width:20%;">State</th>
+              <th style="width:35%;">Time-in-state</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="active-row">
+              <td data-label="ID">A3</td>
+              <td data-label="Name">Verdichter</td>
+              <td data-label="State"><span class="status-cell"><span class="sq on"></span>ON</span></td>
+              <td data-label="Time-in-state">00:14:32 <span class="cell-meta">run</span></td>
+            </tr>
+            <tr class="active-row">
+              <td data-label="ID">A1</td>
+              <td data-label="Name">FBH-Pumpe</td>
+              <td data-label="State"><span class="status-cell"><span class="sq on"></span>ON</span></td>
+              <td data-label="Time-in-state">02:08:11 <span class="cell-meta">run</span></td>
+            </tr>
+            <tr>
+              <td data-label="ID">A7</td>
+              <td data-label="Name">Ventil WW</td>
+              <td data-label="State"><span class="status-cell"><span class="sq"></span>OFF</span></td>
+              <td data-label="Time-in-state">00:42:08 <span class="cell-meta">stop</span></td>
+            </tr>
+            <tr>
+              <td data-label="ID">A8</td>
+              <td data-label="Name">Heizstab HZ</td>
+              <td data-label="State"><span class="status-cell"><span class="sq"></span>OFF</span></td>
+              <td data-label="Time-in-state">stop <span class="cell-meta">-</span></td>
+            </tr>
+            <tr>
+              <td data-label="ID">A9</td>
+              <td data-label="Name">Heizstab WW</td>
+              <td data-label="State"><span class="status-cell"><span class="sq"></span>OFF</span></td>
+              <td data-label="Time-in-state">stop <span class="cell-meta">-</span></td>
+            </tr>
+            <tr>
+              <td data-label="ID">A5</td>
+              <td data-label="Name">Alarm</td>
+              <td data-label="State"><span class="status-cell"><span class="sq clear"></span>CLEAR</span></td>
+              <td data-label="Time-in-state">- <span class="cell-meta">-</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+    </section>
+    <footer class="footer"><span>FE 0.2.0</span><span>BE 0.2.0</span><span>2026-05-09T14:25</span><span>SSE OK</span></footer>
+  </main>
+</body>
+</html>

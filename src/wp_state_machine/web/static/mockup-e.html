@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RATAE · Industrial Bauhaus 2027</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#16161a; --panel:#111216; --panel-2:#1b1d23; --line:#3d414b; --soft:#8d94a3;
+  --text:#f4f1e8; --yellow:#ffd60a; --red:#e63946; --blue:#2541b2; --ok:#b9ff66; --off:#767d8c;
+  --shadow:0 24px 80px rgba(0,0,0,.35);
+}
+* { box-sizing:border-box; }
+html,body { height:100%; }
+body {
+  margin:0; color:var(--text); font-family:"Hanken Grotesk",Arial,sans-serif; background:var(--bg); overflow-x:hidden;
+  background-image:linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+  background-size:24px 24px;
+}
+body::before {
+  content:""; position:fixed; inset:0; pointer-events:none;
+  background:linear-gradient(180deg, rgba(255,255,255,.03), transparent 14%),linear-gradient(90deg, transparent 0 9%, rgba(255,255,255,.035) 9% 9.15%, transparent 9.15% 100%);
+}
+.scene {
+  position:relative; isolation:isolate; width:min(1240px, calc(100% - 28px)); margin:14px auto; padding:18px;
+  border:2px solid var(--line); background:rgba(17,18,22,.92); box-shadow:var(--shadow);
+}
+.shape { position:absolute; z-index:0; }
+.shape-circle {
+  top:-68px; right:-44px; width:210px; height:210px; border-radius:50%; background:var(--yellow);
+  box-shadow:0 0 0 14px rgba(255,214,10,.08); animation:spin 28s linear infinite;
+}
+.shape-square { top:168px; left:-22px; width:54px; height:54px; background:var(--red); }
+.shape-triangle {
+  right:28px; bottom:82px; width:0; height:0; border-left:46px solid transparent;
+  border-right:46px solid transparent; border-bottom:78px solid var(--blue);
+}
+.shell { position:relative; z-index:1; display:grid; gap:14px; }
+.tag {
+  display:inline-flex; align-items:center; justify-content:center; min-height:38px; width:max-content; padding:8px 14px;
+  border:2px solid var(--red); background:var(--panel); font-size:12px; font-weight:800; letter-spacing:.28em; text-transform:uppercase;
+}
+.header,.panel,.footer { border:2px solid var(--line); background:var(--panel); }
+.header { display:grid; grid-template-columns:auto 1fr auto; gap:18px; align-items:end; padding:18px; }
+.brand { font-size:44px; line-height:.88; font-weight:800; letter-spacing:.08em; }
+.divider { align-self:center; height:2px; background:var(--text); opacity:.9; }
+.meta,.panel-id,select,button,.footer { font-family:"JetBrains Mono",monospace; }
+.meta,.sub,.kicker,.tile-label,.actor-name,.footer { color:var(--soft); }
+.meta { font-size:12px; text-align:right; letter-spacing:.08em; }
+.hero-grid,.io-control-grid { display:grid; gap:14px; }
+.hero-grid { grid-template-columns:1.45fr .95fr; }
+.io-control-grid { grid-template-columns:1.2fr .8fr; }
+.panel { position:relative; overflow:hidden; }
+.panel-id {
+  display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 14px; border-bottom:2px solid var(--line);
+  background:var(--panel-2); font-size:12px; font-weight:700; letter-spacing:.16em; text-transform:uppercase;
+}
+.panel-id::after { content:""; flex:1; height:2px; background:var(--line); }
+.hero { min-height:312px; padding:18px; display:grid; align-content:space-between; gap:16px; }
+.kicker { font-size:12px; letter-spacing:.18em; text-transform:uppercase; }
+.state { font-size:clamp(72px, 12vw, 138px); line-height:.9; font-weight:800; letter-spacing:-.05em; }
+.sub { font-size:18px; font-weight:700; }
+.hero-rule { width:min(280px, 70%); height:14px; background:var(--yellow); }
+.tiles,.actor-list { display:grid; gap:14px; }
+.tiles { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+.actor-list { grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; }
+.tile {
+  min-height:149px; padding:16px; border:2px solid var(--line); background:var(--panel); display:grid; align-content:space-between;
+}
+.tile:nth-child(1) { border-top:8px solid var(--yellow); }
+.tile:nth-child(2) { border-top:8px solid var(--red); }
+.tile:nth-child(3) { border-top:8px solid var(--blue); }
+.tile:nth-child(4) { border-top:8px solid var(--text); }
+.tile-label { font-size:12px; letter-spacing:.14em; text-transform:uppercase; }
+.tile-name { font-size:18px; font-weight:700; }
+.value {
+  display:inline-flex; align-items:flex-end; gap:10px; font-size:clamp(34px, 4vw, 48px); line-height:1; font-weight:800; letter-spacing:-.06em;
+}
+.value::after {
+  content:""; width:10px; height:22px; margin-bottom:4px; background:var(--yellow); animation:value-tick 3.2s steps(2,end) infinite;
+}
+.io-body,.control-body { padding:16px; }
+.actor { min-height:68px; padding:12px; border:2px solid var(--line); background:var(--panel-2); }
+.actor-top { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.actor-name { font-size:13px; letter-spacing:.02em; }
+.status {
+  display:inline-flex; align-items:center; gap:8px; font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+}
+.icon { display:inline-block; flex:0 0 auto; }
+.icon-circle { width:12px; height:12px; border-radius:50%; border:2px solid currentColor; }
+.icon-square { width:12px; height:12px; border:2px solid currentColor; }
+.icon-line { width:16px; height:0; border-top:2px solid currentColor; }
+.on { color:var(--ok); } .off { color:var(--off); } .clear { color:var(--yellow); }
+.control-body { display:grid; gap:14px; align-content:start; }
+.field-label { font-size:12px; color:var(--soft); letter-spacing:.16em; text-transform:uppercase; }
+select,button {
+  width:100%; min-height:54px; padding:0 14px; border:2px solid var(--line); font-size:14px; font-weight:700; letter-spacing:.08em;
+}
+select { color:var(--text); background:var(--panel-2); }
+button { color:var(--bg); background:var(--red); }
+.footer {
+  min-height:50px; padding:14px 16px; display:flex; align-items:center; gap:12px; font-size:12px; letter-spacing:.08em;
+}
+@keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+@keyframes value-tick {
+  0%,72%,100% { transform:translateY(0); opacity:.28; }
+  76%,84% { transform:translateY(-8px); opacity:1; }
+}
+@media (max-width:980px) {
+  .header,.hero-grid,.io-control-grid,.actor-list,.tiles { grid-template-columns:1fr; }
+  .header { align-items:start; }
+  .meta { text-align:left; }
+  .shape-circle { width:160px; height:160px; top:-48px; right:-38px; }
+}
+@media (max-width:640px) {
+  .scene { width:min(100% - 14px, 100%); padding:12px; }
+  .state { font-size:56px; }
+  .footer { flex-direction:column; align-items:flex-start; }
+  .shape-square { top:146px; }
+  .shape-triangle { right:12px; bottom:96px; border-left-width:34px; border-right-width:34px; border-bottom-width:58px; }
+}
+</style>
+</head>
+<body>
+<main class="scene">
+  <div class="shape shape-circle" aria-hidden="true"></div>
+  <div class="shape shape-square" aria-hidden="true"></div>
+  <div class="shape shape-triangle" aria-hidden="true"></div>
+  <div class="shell">
+    <div class="tag">DRY-RUN</div>
+    <header class="header">
+      <div class="brand">RATAE</div>
+      <div class="divider" aria-hidden="true"></div>
+      <div class="meta">WP-State-Machine / Pierschke / 2026</div>
+    </header>
+    <section class="hero-grid">
+      <article class="panel">
+        <div class="panel-id">PANEL.01</div>
+        <div class="hero">
+          <div>
+            <div class="kicker">Betriebszustand</div>
+            <div class="state">HEIZUNG</div>
+          </div>
+          <div>
+            <div class="hero-rule" aria-hidden="true"></div>
+            <p class="sub">Verdichter aktiv · Vorlauf 36.4°</p>
+          </div>
+        </div>
+      </article>
+      <section class="tiles">
+        <article class="tile">
+          <div class="tile-label">TILE.01</div>
+          <div class="tile-name">Aussen</div>
+          <div class="value">+5.2°</div>
+        </article>
+        <article class="tile">
+          <div class="tile-label">TILE.02</div>
+          <div class="tile-name">Warmwasser</div>
+          <div class="value">52.8°</div>
+        </article>
+        <article class="tile">
+          <div class="tile-label">TILE.03</div>
+          <div class="tile-name">Vorlauf Puffer</div>
+          <div class="value">36.4°</div>
+        </article>
+        <article class="tile">
+          <div class="tile-label">TILE.04</div>
+          <div class="tile-name">Ruecklauf FBH</div>
+          <div class="value">28.1°</div>
+        </article>
+      </section>
+    </section>
+    <section class="io-control-grid">
+      <article class="panel">
+        <div class="panel-id">PANEL.02</div>
+        <div class="io-body">
+          <div class="actor-list">
+            <div class="actor"><div class="actor-top"><span class="actor-name">Verdichter</span><span class="status on"><span class="icon icon-circle"></span>on</span></div></div>
+            <div class="actor"><div class="actor-top"><span class="actor-name">FBH-Pumpe</span><span class="status on"><span class="icon icon-line"></span>on</span></div></div>
+            <div class="actor"><div class="actor-top"><span class="actor-name">Ventil WW</span><span class="status off"><span class="icon icon-square"></span>off</span></div></div>
+            <div class="actor"><div class="actor-top"><span class="actor-name">Heizstab HZ</span><span class="status off"><span class="icon icon-square"></span>off</span></div></div>
+            <div class="actor"><div class="actor-top"><span class="actor-name">Heizstab WW</span><span class="status off"><span class="icon icon-square"></span>off</span></div></div>
+            <div class="actor"><div class="actor-top"><span class="actor-name">Alarm</span><span class="status clear"><span class="icon icon-circle"></span>clear</span></div></div>
+          </div>
+        </div>
+      </article>
+      <article class="panel">
+        <div class="panel-id">PANEL.03</div>
+        <div class="control-body">
+          <label class="field-label" for="mode">Betriebsart</label>
+          <select id="mode" aria-label="Betriebsart">
+            <option selected>Normal</option>
+            <option>Absenkung</option>
+            <option>Service</option>
+          </select>
+          <button type="button">LEGIONELLENSCHUTZ</button>
+        </div>
+      </article>
+    </section>
+    <footer class="footer">FRAME / 0.2.0 / 2026-05-09 / SSE OK</footer>
+  </div>
+</main>
+</body>
+</html>

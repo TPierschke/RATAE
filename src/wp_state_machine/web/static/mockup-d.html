@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RATAE · Heatpump Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@96,800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#000;--text:#f6fbff;--muted:rgba(246,251,255,.62);--pink:#ff00a8;--cyan:#00eaff;--lime:#b7ff00;
+  --panel:linear-gradient(180deg,rgba(22,22,22,.88),rgba(8,8,8,.94));--radius:24px;
+  --shadow:0 30px 90px rgba(0,0,0,.58),0 0 40px rgba(0,234,255,.08);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;overflow-x:hidden;background:var(--bg);color:var(--text);
+  font-family:"Bricolage Grotesque",system-ui,sans-serif;
+}
+body::before,body::after,.fx::before,.fx::after{
+  content:"";position:fixed;border-radius:50%;filter:blur(74px);pointer-events:none;mix-blend-mode:screen;opacity:.82;
+  animation:drift 18s ease-in-out infinite alternate;
+}
+body::before{top:-10vw;left:-8vw;width:42vw;height:42vw;background:radial-gradient(circle,rgba(255,0,168,.9),rgba(255,0,168,.04) 60%,transparent 72%)}
+body::after{top:15vh;right:-9vw;width:44vw;height:44vw;animation-duration:23s;background:radial-gradient(circle,rgba(0,234,255,.88),rgba(0,234,255,.05) 60%,transparent 74%)}
+.fx::before{bottom:-14vw;left:14vw;width:40vw;height:40vw;animation-duration:21s;background:radial-gradient(circle,rgba(183,255,0,.72),rgba(183,255,0,.06) 56%,transparent 74%)}
+.fx::after{right:16vw;bottom:8vh;width:24vw;height:24vw;animation-duration:16s;background:radial-gradient(circle,rgba(255,0,168,.56),rgba(0,234,255,.1) 46%,transparent 70%)}
+.wrap{position:relative;z-index:1;width:min(1260px,calc(100% - 24px));margin:12px auto 18px}
+.marquee{
+  overflow:hidden;border-radius:999px;padding:1px;background:linear-gradient(90deg,var(--pink),var(--cyan),var(--lime));
+  box-shadow:var(--shadow)
+}
+.marquee-track{
+  display:flex;gap:34px;width:max-content;padding:12px 0;white-space:nowrap;border-radius:999px;background:rgba(0,0,0,.88);
+  font:700 12px/1 "JetBrains Mono",monospace;letter-spacing:.22em;text-transform:uppercase;animation:marquee 18s linear infinite
+}
+.marquee-track span{padding-left:22px}
+.shell{position:relative;display:grid;gap:16px;margin-top:14px}
+.frame{position:relative;border-radius:var(--radius);background:var(--panel);box-shadow:var(--shadow)}
+.frame::before{
+  content:"";position:absolute;inset:0;padding:2px;border-radius:inherit;background:linear-gradient(135deg,var(--pink),var(--cyan) 55%,var(--lime));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude;pointer-events:none
+}
+.tag{
+  position:absolute;top:14px;right:14px;z-index:3;padding:10px 14px;border-radius:999px;background:#070707;
+  font:700 11px/1 "JetBrains Mono",monospace;letter-spacing:.18em;text-transform:uppercase
+}
+.top,.hero,.card,.actors,.control,.foot{padding:20px}
+.top{display:flex;justify-content:space-between;align-items:flex-end;min-height:118px}
+.logo{font-size:14px;font-weight:800;letter-spacing:.42em;text-transform:uppercase}
+.sub,.eyebrow,.label{color:var(--muted);font:700 12px/1 "JetBrains Mono",monospace;letter-spacing:.2em;text-transform:uppercase}
+.status-chip{
+  padding:12px 16px;border-radius:999px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.06);
+  font:700 12px/1 "JetBrains Mono",monospace;letter-spacing:.14em;text-transform:uppercase
+}
+.hero{display:grid;gap:10px;align-content:end;min-height:320px}
+.state{
+  margin:0;font-size:clamp(78px,15vw,184px);line-height:.84;font-weight:800;letter-spacing:-.07em;text-transform:uppercase;
+  background:linear-gradient(90deg,var(--pink),var(--cyan) 52%,var(--lime));-webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:pulse 3.2s ease-in-out infinite
+}
+.hero p{margin:0;max-width:700px;color:rgba(246,251,255,.8);font-size:clamp(16px,2.5vw,24px);letter-spacing:-.02em}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.card,.actors,.control{transition:transform .35s ease,box-shadow .35s ease;transform-style:preserve-3d}
+.card:hover,.actors:hover,.control:hover{transform:perspective(1200px) rotateX(7deg) rotateY(-8deg) translateY(-4px);box-shadow:0 40px 90px rgba(0,0,0,.64),0 0 34px rgba(255,0,168,.12)}
+.value{margin-top:18px;font:700 clamp(30px,4.6vw,48px)/.95 "JetBrains Mono",monospace;letter-spacing:-.05em}
+.value strong{color:var(--lime)}
+.bottom{display:grid;grid-template-columns:1.15fr .85fr;gap:16px}
+.section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.section-title{font-size:18px;font-weight:800;letter-spacing:-.03em}
+.actors-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.actor{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px;border-radius:18px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);font-size:14px
+}
+.pill{padding:8px 10px;border-radius:999px;font:700 11px/1 "JetBrains Mono",monospace;letter-spacing:.16em;text-transform:uppercase}
+.on{background:rgba(183,255,0,.94);color:#0d1600}
+.off{background:rgba(255,255,255,.08);color:rgba(246,251,255,.76)}
+.clear{background:rgba(0,234,255,.18);color:var(--cyan)}
+.stack{display:grid;gap:14px}
+select,button{
+  width:100%;border:none;border-radius:18px;padding:16px 18px;appearance:none;font:700 15px/1.1 "Bricolage Grotesque",sans-serif
+}
+select{color:var(--text);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1)}
+button{
+  color:#041015;background:linear-gradient(90deg,var(--pink),var(--cyan),var(--lime));box-shadow:0 18px 40px rgba(0,234,255,.18);
+  text-transform:uppercase;letter-spacing:.06em
+}
+.foot{
+  display:flex;justify-content:space-between;gap:12px;color:var(--muted);
+  font:700 12px/1.4 "JetBrains Mono",monospace;letter-spacing:.08em;text-transform:uppercase
+}
+@keyframes drift{from{transform:translate3d(0,0,0) scale(1) rotate(0)}to{transform:translate3d(4vw,-3vh,0) scale(1.18) rotate(22deg)}}
+@keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@keyframes pulse{0%,100%{filter:drop-shadow(0 0 10px rgba(255,0,168,.2));transform:scale(1)}50%{filter:drop-shadow(0 0 24px rgba(0,234,255,.34));transform:scale(1.014)}}
+@media (max-width:960px){
+  .stats,.bottom,.actors-grid{grid-template-columns:1fr 1fr}
+  .top,.foot{flex-direction:column;align-items:flex-start}
+}
+@media (max-width:700px){
+  .wrap{width:min(100% - 14px,100%)}
+  .stats,.bottom,.actors-grid{grid-template-columns:1fr}
+  .top,.hero,.card,.actors,.control,.foot{padding:18px}
+  .hero{min-height:242px;padding-top:54px}.tag{top:12px;right:12px;font-size:10px}
+}
+</style>
+</head>
+<body>
+<div class="fx"></div>
+<main class="wrap">
+  <section class="marquee">
+    <div class="marquee-track">
+      <span>● LIVE · MODBUS ONLINE · VORLAUF 36.4° · DELTA +0.4 · LATENCY 22ms · ◆</span>
+      <span>● LIVE · MODBUS ONLINE · VORLAUF 36.4° · DELTA +0.4 · LATENCY 22ms · ◆</span>
+      <span>● LIVE · MODBUS ONLINE · VORLAUF 36.4° · DELTA +0.4 · LATENCY 22ms · ◆</span>
+    </div>
+  </section>
+
+  <section class="shell">
+    <div class="tag frame">DRY-RUN AKTIV</div>
+
+    <header class="top frame">
+      <div>
+        <div class="logo">RATAE</div>
+        <div class="sub">HEATPUMP CONTROL</div>
+      </div>
+      <div class="status-chip">VERDICHTER AKTIV</div>
+    </header>
+
+    <section class="hero frame">
+      <div class="eyebrow">SYSTEMZUSTAND</div>
+      <h1 class="state">HEIZUNG</h1>
+      <p>Verdichter aktiv · Vorlauf 36.4°</p>
+    </section>
+
+    <section class="stats">
+      <article class="card frame">
+        <div class="label">Aussen</div>
+        <div class="value">+5.2°</div>
+      </article>
+      <article class="card frame">
+        <div class="label">Warmwasser</div>
+        <div class="value"><strong>52.8°</strong></div>
+      </article>
+      <article class="card frame">
+        <div class="label">Vorlauf Puffer</div>
+        <div class="value">36.4°</div>
+      </article>
+      <article class="card frame">
+        <div class="label">Ruecklauf FBH</div>
+        <div class="value">28.1°</div>
+      </article>
+    </section>
+
+    <section class="bottom">
+      <article class="actors frame">
+        <div class="section-head">
+          <div class="section-title">IO Grid</div>
+          <div class="label">6 Actors</div>
+        </div>
+        <div class="actors-grid">
+          <div class="actor"><span>Verdichter</span><span class="pill on">on</span></div>
+          <div class="actor"><span>FBH-Pumpe</span><span class="pill on">on</span></div>
+          <div class="actor"><span>Ventil WW</span><span class="pill off">off</span></div>
+          <div class="actor"><span>Heizstab HZ</span><span class="pill off">off</span></div>
+          <div class="actor"><span>Heizstab WW</span><span class="pill off">off</span></div>
+          <div class="actor"><span>Alarm</span><span class="pill clear">clear</span></div>
+        </div>
+      </article>
+
+      <article class="control frame">
+        <div class="section-head">
+          <div class="section-title">Steuerung</div>
+          <div class="label">Live Input</div>
+        </div>
+        <div class="stack">
+          <label class="label" for="mode">Betriebsart</label>
+          <select id="mode" aria-label="Betriebsart">
+            <option selected>Normal</option>
+            <option>Eco</option>
+            <option>Boost</option>
+            <option>Service</option>
+          </select>
+          <button type="button">LEGIONELLENSCHUTZ STARTEN</button>
+        </div>
+      </article>
+    </section>
+
+    <footer class="foot frame">
+      <span>FE 0.2.0 · BE 0.2.0 · SSE verbunden · 2026-05-09</span>
+    </footer>
+  </section>
+</main>
+</body>
+</html>
