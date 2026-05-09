@@ -20,13 +20,15 @@ Verboten:
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Final
 
 log = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Whitelist (abgeschlossene Menge — kein generisches Muster)
+# Optional pro Eintrag:
+#   dry_run_override: bool | None
 # ---------------------------------------------------------------------------
 
 WHITELIST: Final[dict[str, dict]] = {
@@ -93,6 +95,7 @@ class WhitelistResult:
     address: str
     value: int | float | None
     reason: str
+    effective_dry_run: bool | None = field(default=None)
 
 
 # ---------------------------------------------------------------------------
@@ -100,7 +103,9 @@ class WhitelistResult:
 # ---------------------------------------------------------------------------
 
 
-def check_write(address: str, value: int | float) -> WhitelistResult:
+def check_write(
+    address: str, value: int | float, global_dry_run: bool = True
+) -> WhitelistResult:
     """
     Prueft ob ein Schreib-Call ans CMI erlaubt ist.
 
@@ -167,9 +172,20 @@ def check_write(address: str, value: int | float) -> WhitelistResult:
             log.warning("safety.check_write BLOCKED: %s value=%s — %s", address, value, reason)
             return WhitelistResult(allowed=False, address=address, value=value, reason=reason)
 
+    if "dry_run_override" in entry:
+        effective_dry_run = entry["dry_run_override"]
+    else:
+        effective_dry_run = global_dry_run
+
     reason = f"OK: {address} ({entry['name']}) value={value} — whitelisted"
     log.debug("safety.check_write ALLOWED: %s value=%s", address, value)
-    return WhitelistResult(allowed=True, address=address, value=value, reason=reason)
+    return WhitelistResult(
+        allowed=True,
+        address=address,
+        value=value,
+        reason=reason,
+        effective_dry_run=effective_dry_run,
+    )
 
 
 def get_whitelist_info() -> dict[str, dict]:
