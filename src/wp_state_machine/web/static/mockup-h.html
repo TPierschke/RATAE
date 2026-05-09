@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Heatpump Dashboard Mockup H</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:#08111a; --panel:rgba(14,22,32,.86); --line:#57708c; --text:#dbe7f6; --muted:#89a1bb;
+      --hz:#53a7ff; --ww:#ff6e63; --rt:#f0b04b; --glow:0 20px 50px rgba(0,0,0,.35);
+    }
+    * { box-sizing:border-box; }
+    html,body { height:100%; }
+    body {
+      margin:0; color:var(--text); font-family:"IBM Plex Sans",sans-serif;
+      background:
+        radial-gradient(circle at 15% 20%,rgba(83,167,255,.08),transparent 24%),
+        radial-gradient(circle at 85% 18%,rgba(255,110,99,.09),transparent 20%),
+        linear-gradient(180deg,#081018 0%,#0b131c 48%,#070d14 100%);
+    }
+    .app { min-height:100%; display:grid; grid-template-rows:1fr auto; gap:16px; padding:20px; }
+    .dashboard { position:relative; display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:18px; }
+    .schema,.panel,.state {
+      border:1px solid rgba(124,160,194,.18); background:var(--panel); box-shadow:var(--glow); backdrop-filter:blur(8px);
+    }
+    .schema { position:relative; overflow:hidden; border-radius:22px; padding:18px; }
+    .schema::before {
+      content:"LIVE SCHEMATIC / ANLAGENSCHEMA"; position:absolute; top:14px; left:18px; color:var(--muted);
+      font-size:12px; letter-spacing:.18em;
+    }
+    .dry {
+      position:absolute; top:16px; right:16px; padding:6px 10px; border-radius:999px;
+      border:1px solid rgba(255,190,92,.45); color:#ffd48a; background:rgba(255,181,71,.08);
+      font:600 11px/1 "JetBrains Mono",monospace; letter-spacing:.14em;
+    }
+    .state {
+      position:absolute; top:24px; right:338px; z-index:2; min-width:220px; padding:14px 16px; border-radius:18px;
+    }
+    .kicker { color:var(--muted); font-size:11px; letter-spacing:.18em; margin:0 0 6px; }
+    .state .value { margin:0; font-size:28px; font-weight:700; line-height:1.05; }
+    .panel { border-radius:22px; padding:24px 20px; display:flex; flex-direction:column; justify-content:center; gap:18px; }
+    h2,p,.footer { margin:0; }
+    h2 { font-size:18px; letter-spacing:.06em; }
+    p { color:var(--muted); font-size:14px; line-height:1.5; }
+    .label { display:block; margin:0 0 8px; color:var(--muted); font-size:12px; letter-spacing:.08em; text-transform:uppercase; }
+    select,button {
+      width:100%; border:1px solid rgba(112,145,177,.28); border-radius:14px; color:var(--text);
+      background:#0f1924; font:500 15px/1.2 "IBM Plex Sans",sans-serif;
+    }
+    select { appearance:none; padding:14px 16px; }
+    button { padding:15px 16px; cursor:pointer; font-weight:600; background:linear-gradient(180deg,#1a3249,#122536); }
+    .footer {
+      padding:14px 18px; border-radius:18px; text-align:center; background:rgba(10,17,25,.82);
+      border:1px solid rgba(124,160,194,.16); color:#aac0d8; font:600 13px/1 "JetBrains Mono",monospace; letter-spacing:.08em;
+    }
+    svg { display:block; width:100%; height:auto; margin-top:28px; }
+    .shell { fill:#132131; stroke:var(--line); stroke-width:2.2; }
+    .pipe { fill:none; stroke-width:16; stroke-linecap:round; stroke-linejoin:round; opacity:.9; }
+    .hz { stroke:var(--hz); } .ww { stroke:var(--ww); } .rt { stroke:var(--rt); }
+    .flow {
+      fill:none; stroke:rgba(232,244,255,.92); stroke-width:4; stroke-linecap:round; stroke-dasharray:1 18;
+      animation:drift 2.8s linear infinite;
+    }
+    .slow { animation-duration:4.2s; opacity:.75; }
+    .tag,.comp,.val,.sensor-t,.sensor-v { font-family:"JetBrains Mono",monospace; }
+    .tag { fill:#88a4c0; font-size:11px; letter-spacing:.16em; }
+    .comp { fill:#d5e3f2; font-size:13px; letter-spacing:.04em; }
+    .val { fill:#edf6ff; font-size:14px; font-weight:600; }
+    .guide { stroke:rgba(89,113,139,.35); stroke-width:1; }
+    .sensor-line { stroke:#607a97; stroke-width:1.5; stroke-dasharray:4 5; }
+    .sensor-node { fill:#0d1722; stroke:#afc7dd; stroke-width:2; }
+    .sensor-t { fill:#edf6ff; font-size:11px; }
+    .sensor-v { fill:#9cc6ff; font-size:11px; }
+    @keyframes drift { to { stroke-dashoffset:-120; } }
+    @media (max-width:980px) {
+      .dashboard { grid-template-columns:1fr; }
+      .state { position:static; order:-1; margin-bottom:-4px; }
+    }
+    @media (max-width:640px) {
+      .app { padding:12px; }
+      .schema { padding:14px; }
+      .state .value { font-size:22px; }
+      .panel { padding:18px 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="dashboard">
+      <div class="state">
+        <p class="kicker">SYSTEM STATUS</p>
+        <p class="value">HEIZUNG / Verdichter aktiv</p>
+      </div>
+
+      <section class="schema">
+        <div class="dry">DRY-RUN</div>
+        <svg viewBox="0 0 1120 660" role="img" aria-label="Heatpump live schematic dashboard">
+          <line x1="40" y1="80" x2="1080" y2="80" class="guide" />
+          <line x1="40" y1="578" x2="1080" y2="578" class="guide" />
+
+          <path d="M170 332 H460 V244 H664" class="pipe hz" />
+          <path d="M170 354 H432 V462 H664" class="pipe rt" />
+          <path d="M692 244 H830 V170 H914" class="pipe ww" />
+          <path d="M914 226 H860 V244 H692" class="pipe rt" />
+          <path d="M692 270 H820 V380 H934 V470 H764" class="pipe hz" />
+          <path d="M764 516 H664 V462 H504" class="pipe rt" />
+
+          <path d="M170 332 H460 V244 H664" class="flow" />
+          <path d="M692 244 H830 V170 H914" class="flow slow" />
+          <path d="M692 270 H820 V380 H934 V470 H764" class="flow" />
+
+          <rect x="70" y="286" width="100" height="116" rx="14" class="shell" />
+          <text x="120" y="276" text-anchor="middle" class="tag">OUTDOOR UNIT</text>
+          <path d="M95 318 h50 m-50 18 h50 m-50 18 h50" stroke="#7ab5ff" stroke-width="3" />
+          <circle cx="120" cy="374" r="18" fill="none" stroke="#7ab5ff" stroke-width="3" />
+          <text x="120" y="433" text-anchor="middle" class="comp">EVAPORATOR</text>
+
+          <rect x="208" y="300" width="114" height="88" rx="18" class="shell" />
+          <text x="265" y="292" text-anchor="middle" class="tag">COMPRESSOR</text>
+          <circle cx="244" cy="344" r="20" fill="none" stroke="#b0c7db" stroke-width="3" />
+          <path d="M244 324 l18 20 -18 20" fill="none" stroke="#b0c7db" stroke-width="3" />
+          <text x="265" y="432" text-anchor="middle" class="comp">VERDICHTER</text>
+
+          <circle cx="462" cy="244" r="19" class="shell" />
+          <path d="M448 230 l28 28 m0-28 -28 28" stroke="#ffcf91" stroke-width="3" />
+          <text x="462" y="208" text-anchor="middle" class="tag">3-WAY VALVE</text>
+
+          <circle cx="432" cy="462" r="22" class="shell" />
+          <circle cx="432" cy="462" r="8" fill="#9bc8ff" />
+          <text x="432" y="500" text-anchor="middle" class="comp">P1 HZ PUMP</text>
+
+          <rect x="560" y="190" width="132" height="180" rx="48" class="shell" />
+          <line x1="626" y1="204" x2="626" y2="356" stroke="#6a85a0" stroke-width="2" stroke-dasharray="6 6" />
+          <text x="626" y="174" text-anchor="middle" class="tag">BUFFER TANK</text>
+          <text x="626" y="394" text-anchor="middle" class="comp">PUFFER</text>
+
+          <rect x="914" y="112" width="120" height="154" rx="48" class="shell" />
+          <line x1="974" y1="126" x2="974" y2="252" stroke="#6a85a0" stroke-width="2" stroke-dasharray="6 6" />
+          <text x="974" y="96" text-anchor="middle" class="tag">DHW TANK</text>
+          <text x="974" y="292" text-anchor="middle" class="comp">WARMWASSER</text>
+
+          <circle cx="820" cy="380" r="22" class="shell" />
+          <circle cx="820" cy="380" r="8" fill="#9bc8ff" />
+          <text x="820" y="418" text-anchor="middle" class="comp">P2 LOOP PUMP</text>
+
+          <rect x="764" y="430" width="286" height="126" rx="28" class="shell" />
+          <path d="M796 522 q26-56 52 0 t52 0 t52 0 t52 0" fill="none" stroke="#86bbff" stroke-width="4" />
+          <text x="907" y="420" text-anchor="middle" class="tag">FLOOR HEATING LOOP</text>
+          <text x="907" y="588" text-anchor="middle" class="comp">FUSSBODENHEIZUNG</text>
+
+          <line x1="140" y1="286" x2="140" y2="212" class="sensor-line" />
+          <circle cx="140" cy="188" r="24" class="sensor-node" />
+          <text x="140" y="184" text-anchor="middle" class="sensor-t">S1</text>
+          <text x="140" y="198" text-anchor="middle" class="sensor-v">Aussen 5.2°</text>
+
+          <line x1="692" y1="244" x2="760" y2="118" class="sensor-line" />
+          <circle cx="784" cy="98" r="28" class="sensor-node" />
+          <text x="784" y="93" text-anchor="middle" class="sensor-t">S2</text>
+          <text x="784" y="108" text-anchor="middle" class="sensor-v">Vorlauf 36.4°</text>
+
+          <line x1="664" y1="462" x2="730" y2="560" class="sensor-line" />
+          <circle cx="754" cy="584" r="30" class="sensor-node" />
+          <text x="754" y="579" text-anchor="middle" class="sensor-t">S3</text>
+          <text x="754" y="594" text-anchor="middle" class="sensor-v">Ruecklauf 28.1°</text>
+
+          <line x1="974" y1="112" x2="1046" y2="52" class="sensor-line" />
+          <circle cx="1068" cy="36" r="28" class="sensor-node" />
+          <text x="1068" y="31" text-anchor="middle" class="sensor-t">S4</text>
+          <text x="1068" y="46" text-anchor="middle" class="sensor-v">WW 52.8°</text>
+
+          <text x="104" y="346" class="val">AIR</text>
+          <text x="265" y="349" text-anchor="middle" class="val">ON</text>
+          <text x="462" y="250" text-anchor="middle" class="val">A</text>
+          <text x="626" y="274" text-anchor="middle" class="val">36.4 / 28.1</text>
+          <text x="974" y="194" text-anchor="middle" class="val">52.8 C</text>
+          <text x="908" y="500" text-anchor="middle" class="val">HEAT DEMAND ACTIVE</text>
+        </svg>
+      </section>
+
+      <aside class="panel">
+        <div>
+          <h2>Steuerung</h2>
+          <p>P&amp;ID-orientierte Zustandsansicht mit aktiven Heiz- und Warmwasserpfaden.</p>
+        </div>
+        <div>
+          <label for="mode" class="label">Betriebsart</label>
+          <select id="mode" name="mode">
+            <option selected>Normal</option>
+            <option>Eco</option>
+            <option>Boost</option>
+            <option>Service</option>
+          </select>
+        </div>
+        <div><button type="button">Legionellenschutz starten</button></div>
+      </aside>
+    </div>
+
+    <footer class="footer">RATAE &middot; v0.2.0 &middot; MODBUS ONLINE &middot; 2026-05-09</footer>
+  </div>
+</body>
+</html>

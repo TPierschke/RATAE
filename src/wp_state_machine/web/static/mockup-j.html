@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RATAE / WPSM Cockpit Mockup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:#000; --text:#eef2f5; --muted:#98a0aa; --amber:#f4b042; --green:#7cff8f; --red:#ff5858;
+      --bezel:repeating-linear-gradient(135deg,#c9ccd1 0,#b9bcc2 5px,#8f949b 9px,#6e7177 13px,#b6bbc0 17px);
+    }
+    * { box-sizing:border-box; }
+    html,body { margin:0; min-height:100%; background:#000; color:var(--text); }
+    body { font-family:"Anton",system-ui,sans-serif; letter-spacing:.04em; background:radial-gradient(circle at 50% 0%, rgba(255,255,255,.07), transparent 28%),radial-gradient(circle at 50% 100%, rgba(255,255,255,.03), transparent 34%),#000; }
+    .app { width:min(1480px, calc(100vw - 24px)); margin:12px auto; padding:10px; border:1px solid #191c21; background:linear-gradient(180deg,#050608,#000); box-shadow:0 0 0 1px #0f1114 inset, 0 18px 60px rgba(0,0,0,.5); }
+    .status-row,.hero,.gauges,.systems,.control-row,.hero-main,.led-grid { display:grid; gap:10px; }
+    .status-row { grid-template-columns:repeat(5,minmax(0,1fr)); margin-bottom:10px; }
+    .status-pill,.panel,.gauge-card,.led-card,.control-card { background:var(--bezel); padding:7px; border-radius:18px; box-shadow:0 1px 0 rgba(255,255,255,.35) inset, 0 -2px 6px rgba(0,0,0,.5) inset, 0 8px 18px rgba(0,0,0,.35); }
+    .status-pill > span,.panel-face,.gauge-face,.led-face,.control-face { display:block; border-radius:13px; background:linear-gradient(180deg,#151920,#090b0f); border:1px solid #232830; box-shadow:0 0 0 1px rgba(255,255,255,.03) inset, 0 10px 24px rgba(0,0,0,.5) inset; }
+    .status-pill > span { padding:10px 12px; text-align:center; color:#dce2e8; font-size:clamp(13px,1.6vw,18px); }
+    .hero { grid-template-columns:1.6fr .7fr; margin-bottom:10px; }
+    .panel-face { padding:16px; }
+    .hero-label,.section-label,.gauge-name,.footer,.subcopy,.toggle-text,.control-label,.led-copy,.led-state { font-family:"JetBrains Mono",monospace; letter-spacing:.12em; }
+    .hero-label,.section-label,.control-label,.footer,.subcopy,.toggle-text,.led-state { color:var(--muted); font-size:12px; text-transform:uppercase; }
+    .hero-main { grid-template-columns:220px 1fr; align-items:center; }
+    .hero-dial { width:min(220px,100%); aspect-ratio:1/1; margin:auto; border-radius:50%; background:radial-gradient(circle at 50% 48%, #1a1e24 0, #090b0f 56%, #020305 100%); border:1px solid #2b3139; box-shadow:0 0 0 10px rgba(0,0,0,.46) inset, 0 0 0 1px rgba(255,255,255,.03); overflow:hidden; }
+    .hero-title { margin:8px 0 4px; font-size:clamp(50px,7vw,92px); line-height:.95; color:#f6f7f9; text-shadow:0 0 10px rgba(255,255,255,.08); }
+    .hero-strip { display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
+    .mini-chip { padding:7px 10px; border:1px solid #2a3038; border-radius:999px; background:#0c0f14; color:#cfd6dd; font:600 12px "JetBrains Mono",monospace; }
+    .toggle { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:14px 16px; margin-bottom:10px; }
+    .toggle:last-child { margin-bottom:0; }
+    .toggle-track { width:90px; height:38px; border-radius:999px; padding:4px; border:1px solid #3a4048; background:linear-gradient(180deg,#6a4e14,#211806); box-shadow:0 0 0 1px rgba(255,255,255,.04) inset; }
+    .toggle-thumb { width:28px; height:28px; border-radius:50%; background:radial-gradient(circle at 35% 35%, #fff2bd, #d89a27 58%, #7f5200 100%); transform:translateX(50px); box-shadow:0 0 18px rgba(244,176,66,.35); }
+    .gauges { grid-template-columns:repeat(4,minmax(0,1fr)); margin-bottom:10px; }
+    .gauge-face { padding:14px 12px 16px; text-align:center; }
+    .gauge-name { margin:0 0 8px; color:#d2d8de; font-size:12px; text-transform:uppercase; }
+    .gauge-svg { width:100%; max-width:250px; aspect-ratio:1/1; display:block; margin:0 auto; overflow:visible; }
+    .needle { transform-origin:110px 110px; animation:wobble 4.5s ease-in-out infinite; }
+    .needle.fast { animation-duration:3.4s; }
+    .needle.slow { animation-duration:5.6s; }
+    .digital { font:700 24px "JetBrains Mono",monospace; fill:#fbfcfd; letter-spacing:0; }
+    .digital.small { font-size:12px; fill:#9fa8b1; }
+    .systems { grid-template-columns:1.2fr .8fr; margin-bottom:10px; }
+    .led-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .led-face { min-height:118px; padding:14px 12px; display:grid; place-items:center; text-align:center; }
+    .led { width:34px; height:34px; border-radius:50%; border:2px solid #737983; background:radial-gradient(circle at 35% 35%, #2d3138, #0d1015 68%); box-shadow:0 0 0 5px rgba(0,0,0,.42), 0 0 0 1px rgba(255,255,255,.04) inset; margin-bottom:10px; }
+    .led.green.active { background:radial-gradient(circle at 35% 35%, #e9ffe8, #7cff8f 42%, #0e3615 100%); box-shadow:0 0 22px rgba(124,255,143,.42), 0 0 0 5px rgba(0,0,0,.42); }
+    .led.amber.active { background:radial-gradient(circle at 35% 35%, #fff0ca, #f4b042 42%, #4d2d02 100%); box-shadow:0 0 22px rgba(244,176,66,.42), 0 0 0 5px rgba(0,0,0,.42); }
+    .led.red.active { background:radial-gradient(circle at 35% 35%, #ffd5d5, #ff5858 42%, #4d0606 100%); box-shadow:0 0 22px rgba(255,88,88,.42), 0 0 0 5px rgba(0,0,0,.42); }
+    .led-copy { color:#dce2e8; font-size:12px; }
+    .control-row { grid-template-columns:1fr 1fr auto; align-items:end; }
+    .control-face { padding:14px; }
+    select,button { width:100%; border:1px solid #313740; border-radius:12px; background:linear-gradient(180deg,#171b22,#0b0d11); color:#f1f4f8; padding:14px 16px; font:600 18px "Anton",system-ui,sans-serif; letter-spacing:.08em; }
+    button { min-width:280px; }
+    .footer { margin-top:10px; padding:4px 2px 0; text-align:right; }
+    @keyframes wobble { 0%,100% { transform:rotate(var(--angle)); } 45% { transform:rotate(calc(var(--angle) - 1.4deg)); } 55% { transform:rotate(calc(var(--angle) + 1.1deg)); } }
+    @media (max-width:1180px) { .hero,.systems { grid-template-columns:1fr; } .gauges { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    @media (max-width:760px) { .app { width:min(100vw - 10px, 100%); margin:5px auto; } .status-row,.gauges,.led-grid,.control-row,.hero-main { grid-template-columns:1fr; } button { min-width:0; } .hero-title,.footer { text-align:center; } .hero-strip { justify-content:center; } }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="status-row" aria-label="Top status row">
+      <div class="status-pill"><span>RATAE</span></div>
+      <div class="status-pill"><span>WPSM</span></div>
+      <div class="status-pill"><span>DRY-RUN ON</span></div>
+      <div class="status-pill"><span>MODBUS ONLINE</span></div>
+      <div class="status-pill"><span>SSE LIVE</span></div>
+    </section>
+
+    <section class="hero">
+      <article class="panel"><div class="panel-face">
+        <div class="hero-label">Zentralanzeige / Flight State</div>
+        <div class="hero-main">
+          <div class="hero-dial">
+            <svg viewBox="0 0 220 220" width="220" height="220" aria-label="HEIZUNG indicator">
+              <defs><linearGradient id="arc" x1="0" x2="1"><stop offset="0%" stop-color="#8da3b8"/><stop offset="50%" stop-color="#f4b042"/><stop offset="100%" stop-color="#d7dde3"/></linearGradient></defs>
+              <path d="M28 146 A82 82 0 0 1 192 146" fill="none" stroke="url(#arc)" stroke-width="12" stroke-linecap="round"/>
+              <path d="M48 145 A62 62 0 0 1 172 145" fill="#34597f" opacity=".85"/>
+              <path d="M48 145 A62 62 0 0 0 172 145" fill="#3d2a10" opacity=".95"/>
+              <g stroke="#aeb7c0" stroke-width="2"><line x1="110" y1="36" x2="110" y2="56"/><line x1="57" y1="58" x2="69" y2="72"/><line x1="163" y1="58" x2="151" y2="72"/><line x1="34" y1="112" x2="54" y2="112"/><line x1="186" y1="112" x2="166" y2="112"/></g>
+              <circle cx="110" cy="145" r="8" fill="#d8dde3"/>
+              <line x1="110" y1="145" x2="150" y2="114" stroke="#f8fbff" stroke-width="5" stroke-linecap="round"/>
+              <text x="110" y="173" text-anchor="middle" fill="#f6f7f9" font-family="Anton, sans-serif" font-size="36" letter-spacing="2">HEIZUNG</text>
+            </svg>
+          </div>
+          <div>
+            <div class="hero-title">HEIZUNG</div>
+            <div class="subcopy">Verdichter aktiv · Vorlauf 36.4°</div>
+            <div class="hero-strip">
+              <span class="mini-chip">STATE A3</span><span class="mini-chip">FLOW 36.4 C</span><span class="mini-chip">RETURN 28.1 C</span>
+            </div>
+          </div>
+        </div>
+      </div></article>
+      <aside class="panel"><div class="panel-face">
+        <div class="toggle">
+          <div><div class="section-label">MASTER ARM</div><div class="toggle-text">System freigegeben</div></div>
+          <div class="toggle-track" aria-hidden="true"><div class="toggle-thumb"></div></div>
+        </div>
+        <div class="toggle">
+          <div><div class="section-label">DRY-RUN</div><div class="toggle-text">Override aktiv</div></div>
+          <div class="toggle-track" aria-hidden="true"><div class="toggle-thumb"></div></div>
+        </div>
+      </div></aside>
+    </section>
+
+    <section class="gauges" aria-label="Temperaturdials">
+      <article class="gauge-card"><div class="gauge-face">
+        <p class="gauge-name">Aussen</p>
+        <svg class="gauge-svg" viewBox="0 0 220 220">
+          <circle cx="110" cy="110" r="95" fill="#07090c" stroke="#3b4149" stroke-width="2"/><circle cx="110" cy="110" r="78" fill="none" stroke="#1b2026" stroke-width="14"/>
+          <g stroke="#cfd6dd"><line x1="110" y1="24" x2="110" y2="42" transform="rotate(-120 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(-90 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(-60 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(-30 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(0 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(30 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(60 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(90 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(120 110 110)"/></g>
+          <g class="needle slow" style="--angle:-45deg"><line x1="110" y1="114" x2="150" y2="78" stroke="#ff5b5b" stroke-width="5" stroke-linecap="round"/><polygon points="104,112 110,48 116,112" fill="#ff5b5b" opacity=".22"/></g><circle cx="110" cy="110" r="8" fill="#dfe5ea"/><text x="110" y="105" text-anchor="middle" class="digital">+5.2°</text><text x="110" y="124" text-anchor="middle" class="digital small">AMBIENT</text>
+        </svg>
+      </div></article>
+      <article class="gauge-card"><div class="gauge-face">
+        <p class="gauge-name">Warmwasser</p>
+        <svg class="gauge-svg" viewBox="0 0 220 220">
+          <circle cx="110" cy="110" r="95" fill="#07090c" stroke="#3b4149" stroke-width="2"/><circle cx="110" cy="110" r="78" fill="none" stroke="#1b2026" stroke-width="14"/>
+          <g stroke="#cfd6dd"><line x1="110" y1="24" x2="110" y2="42" transform="rotate(-120 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(-90 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(-60 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(-30 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(0 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(30 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(60 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(90 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(120 110 110)"/></g>
+          <g class="needle fast" style="--angle:58deg"><line x1="110" y1="114" x2="146" y2="80" stroke="#f4b042" stroke-width="5" stroke-linecap="round"/><polygon points="104,112 110,48 116,112" fill="#f4b042" opacity=".24"/></g><circle cx="110" cy="110" r="8" fill="#dfe5ea"/><text x="110" y="105" text-anchor="middle" class="digital">52.8°</text><text x="110" y="124" text-anchor="middle" class="digital small">DHW TANK</text>
+        </svg>
+      </div></article>
+      <article class="gauge-card"><div class="gauge-face">
+        <p class="gauge-name">Vorlauf</p>
+        <svg class="gauge-svg" viewBox="0 0 220 220">
+          <circle cx="110" cy="110" r="95" fill="#07090c" stroke="#3b4149" stroke-width="2"/><circle cx="110" cy="110" r="78" fill="none" stroke="#1b2026" stroke-width="14"/>
+          <g stroke="#cfd6dd"><line x1="110" y1="24" x2="110" y2="42" transform="rotate(-120 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(-90 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(-60 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(-30 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(0 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(30 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(60 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(90 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(120 110 110)"/></g>
+          <g class="needle" style="--angle:14deg"><line x1="110" y1="114" x2="152" y2="90" stroke="#7ecbff" stroke-width="5" stroke-linecap="round"/><polygon points="104,112 110,48 116,112" fill="#7ecbff" opacity=".22"/></g><circle cx="110" cy="110" r="8" fill="#dfe5ea"/><text x="110" y="105" text-anchor="middle" class="digital">36.4°</text><text x="110" y="124" text-anchor="middle" class="digital small">SUPPLY</text>
+        </svg>
+      </div></article>
+      <article class="gauge-card"><div class="gauge-face">
+        <p class="gauge-name">Ruecklauf</p>
+        <svg class="gauge-svg" viewBox="0 0 220 220">
+          <circle cx="110" cy="110" r="95" fill="#07090c" stroke="#3b4149" stroke-width="2"/><circle cx="110" cy="110" r="78" fill="none" stroke="#1b2026" stroke-width="14"/>
+          <g stroke="#cfd6dd"><line x1="110" y1="24" x2="110" y2="42" transform="rotate(-120 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(-90 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(-60 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(-30 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(0 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(30 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(60 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(90 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(120 110 110)"/></g>
+          <g class="needle slow" style="--angle:-10deg"><line x1="110" y1="114" x2="149" y2="95" stroke="#c7d8e8" stroke-width="5" stroke-linecap="round"/><polygon points="104,112 110,48 116,112" fill="#c7d8e8" opacity=".22"/></g><circle cx="110" cy="110" r="8" fill="#dfe5ea"/><text x="110" y="105" text-anchor="middle" class="digital">28.1°</text><text x="110" y="124" text-anchor="middle" class="digital small">RETURN</text>
+        </svg>
+      </div></article>
+    </section>
+
+    <section class="systems">
+      <article class="panel"><div class="panel-face">
+        <div class="section-label" style="margin-bottom:12px;">Status LEDs</div>
+        <div class="led-grid">
+          <div class="led-card"><div class="led-face"><div class="led green active"></div><div class="led-copy">Verdichter</div><div class="led-state">ON</div></div></div>
+          <div class="led-card"><div class="led-face"><div class="led green active"></div><div class="led-copy">FBH-Pumpe</div><div class="led-state">ON</div></div></div>
+          <div class="led-card"><div class="led-face"><div class="led amber"></div><div class="led-copy">Ventil WW</div><div class="led-state">OFF</div></div></div>
+          <div class="led-card"><div class="led-face"><div class="led amber"></div><div class="led-copy">Heizstab HZ</div><div class="led-state">OFF</div></div></div>
+          <div class="led-card"><div class="led-face"><div class="led amber"></div><div class="led-copy">Heizstab WW</div><div class="led-state">OFF</div></div></div>
+          <div class="led-card"><div class="led-face"><div class="led red"></div><div class="led-copy">Alarm</div><div class="led-state">OFF</div></div></div>
+        </div>
+      </div></article>
+      <article class="panel"><div class="panel-face">
+        <div class="section-label" style="margin-bottom:12px;">MASTER ARM / DRY-RUN</div>
+        <div class="subcopy">Serienmaessig armiert. Dry-run bleibt bewusst sichtbar und cockpitmaessig verriegelt.</div>
+      </div></article>
+    </section>
+
+    <section class="control-row">
+      <div class="control-card"><div class="control-face"><label class="control-label" for="mode">Betriebsart</label><select id="mode"><option selected>Normal</option><option>Reduziert</option><option>Service</option></select></div></div>
+      <div class="control-card"><div class="control-face"><label class="control-label" for="task">Aktion</label><button id="task" type="button">LEGIONELLENSCHUTZ</button></div></div>
+      <div class="footer">v0.2.0 · 2026-05-09</div>
+    </section>
+  </main>
+</body>
+</html>

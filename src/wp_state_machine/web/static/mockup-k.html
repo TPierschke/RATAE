@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RATAE · WP State Machine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:#08090b; --bg-top:#101218; --surface:#0e0f12; --surface-2:#15171b; --surface-3:#1c1f24;
+      --line:#1f2128; --line-hover:#2a2d35; --text:#f3f4f6; --muted:#9aa0ab; --muted-2:#c8cdd7;
+      --accent:#6366f1; --accent-soft:rgba(99,102,241,.16); --ok:#6ee7b7; --radius:8px;
+    }
+    * { box-sizing:border-box; }
+    html,body { margin:0; min-height:100%; background:linear-gradient(180deg,var(--bg-top) 0%,var(--bg) 16%,var(--bg) 100%); color:var(--text); }
+    body { font-family:"Geist",system-ui,sans-serif; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
+    .mono,select,button,.footer { font-family:"JetBrains Mono",monospace; font-variant-numeric:tabular-nums; }
+    h1,h2,h3,p { margin:0; }
+    .app { width:min(1280px,calc(100vw - 40px)); margin:24px auto; display:grid; gap:28px; }
+    .card { min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); transition:transform 160ms ease,border-color 160ms ease,background-color 160ms ease; }
+    .card:hover { transform:translateY(-1px); border-color:var(--line-hover); background:var(--surface-3); }
+    .accent { position:relative; overflow:hidden; }
+    .accent::before { content:""; position:absolute; inset:0 auto 0 0; width:2px; background:var(--accent); }
+    .topbar { display:grid; grid-template-columns:1fr auto; gap:20px; align-items:center; padding:18px 22px; background:rgba(14,15,18,.82); backdrop-filter:blur(10px); }
+    .brandline,.actions,.status-pill,.badge,.table-status { display:inline-flex; align-items:center; gap:10px; }
+    .brandline { min-width:0; }
+    .logo { width:26px; height:26px; border-radius:6px; display:grid; place-items:center; background:linear-gradient(180deg,#181b22,#101218); border:1px solid var(--line); font-size:11px; font-weight:700; letter-spacing:.08em; }
+    .crumbs,.badge,.status-pill,.eyebrow,.subtitle,.tile-label,.field-label,.table th,.footer { font-size:12px; line-height:1; }
+    .crumbs { color:var(--muted); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .actions { justify-self:end; flex-wrap:wrap; }
+    .badge,.status-pill { padding:8px 12px; border-radius:999px; border:1px solid var(--line); background:var(--surface-2); color:var(--muted-2); }
+    .badge { color:var(--muted); }
+    .status-dot { width:8px; height:8px; border-radius:50%; background:var(--ok); box-shadow:0 0 0 4px rgba(110,231,183,.08); }
+    .header { padding:4px 2px 0; }
+    .eyebrow { margin:0 0 12px; color:var(--muted); font-weight:600; letter-spacing:.03em; }
+    .title { font-size:clamp(38px,6vw,48px); line-height:1; letter-spacing:-.05em; font-weight:700; }
+    .subtitle { margin-top:10px; color:var(--muted); font-weight:500; }
+    .layout { display:grid; grid-template-columns:minmax(0,1.42fr) minmax(320px,.95fr); gap:24px; align-items:start; }
+    .hero { padding:28px; display:grid; gap:26px; }
+    .hero-top { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:20px; align-items:start; }
+    .state { font-size:clamp(36px,5vw,44px); line-height:.98; letter-spacing:-.05em; font-weight:700; }
+    .hero-sub { margin-top:10px; font-size:14px; color:var(--muted-2); font-weight:500; }
+    .spark { width:170px; height:56px; padding:8px; border-radius:6px; border:1px solid var(--line); background:linear-gradient(180deg,rgba(99,102,241,.08),rgba(99,102,241,.02)); }
+    .spark svg { width:100%; height:100%; display:block; }
+    .telemetry { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:24px; }
+    .tile { padding:22px; display:grid; gap:16px; }
+    .tile-label,.field-label,.table th,.footer { color:var(--muted); font-weight:600; letter-spacing:.03em; }
+    .tile-value { font-size:32px; line-height:1; letter-spacing:-.04em; }
+    .side { display:grid; gap:24px; }
+    .panel { padding:22px; display:grid; gap:18px; }
+    .panel-head { display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
+    .panel-title { font-size:18px; line-height:1.1; letter-spacing:-.02em; font-weight:600; }
+    .table { width:100%; border-collapse:collapse; }
+    .table th,.table td { padding:12px 0; border-bottom:1px solid var(--line); text-align:left; font-size:14px; }
+    .table th { padding-top:0; }
+    .table tbody tr:last-child td { border-bottom:0; padding-bottom:0; }
+    .table th:last-child,.table td:last-child { text-align:right; }
+    .table-status { justify-content:flex-end; color:var(--muted-2); }
+    .dot { width:8px; height:8px; border-radius:50%; background:#2a2d35; }
+    .dot.on { background:var(--accent); box-shadow:0 0 0 4px rgba(99,102,241,.1); }
+    .control-stack,.field { display:grid; gap:10px; }
+    .control-stack { gap:18px; }
+    select,button { width:100%; min-height:42px; padding:0 14px; border-radius:8px; border:1px solid var(--line); background:var(--surface-2); color:var(--text); font-size:13px; outline:none; transition:transform 160ms ease,border-color 160ms ease,background-color 160ms ease; }
+    select:hover,button:hover { transform:translateY(-1px); border-color:var(--line-hover); background:var(--surface-3); }
+    .cta { color:#eef0ff; background:linear-gradient(180deg,rgba(99,102,241,.24),rgba(99,102,241,.18)); border-color:rgba(99,102,241,.34); box-shadow:inset 2px 0 0 var(--accent); }
+    .footer { padding:4px 2px 10px; }
+    @media (max-width:1100px) { .layout { grid-template-columns:1fr; } .side { grid-template-columns:1fr 1fr; } }
+    @media (max-width:720px) { .app { width:min(100vw - 20px,100%); margin:10px auto 20px; gap:20px; } .topbar,.hero-top,.telemetry,.side { grid-template-columns:1fr; } .actions { justify-self:start; } .spark { width:100%; } }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <nav class="topbar card">
+      <div class="brandline"><div class="logo">RT</div><div class="crumbs">Anlage / Pierschke / Aktuell</div></div>
+      <div class="actions"><div class="badge">DRY-RUN</div><div class="status-pill"><span class="status-dot"></span>MODBUS</div></div>
+    </nav>
+    <header class="header">
+      <p class="eyebrow">WP State Machine</p>
+      <h1 class="title">WP State Machine</h1>
+      <p class="subtitle">Live Telemetrie · 2026-05-09</p>
+    </header>
+    <section class="layout">
+      <section class="hero card accent">
+        <div class="hero-top">
+          <div>
+            <p class="eyebrow">Aktueller Zustand</p>
+            <h2 class="state">HEIZUNG</h2>
+            <p class="hero-sub">Verdichter aktiv · Vorlauf <span class="mono">36.4°</span></p>
+          </div>
+          <div class="spark" aria-hidden="true">
+            <svg viewBox="0 0 154 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 30H153" stroke="#1f2128" stroke-width="1"/>
+              <path d="M1 26C11 26 17 17 28 17C40 17 44 25 55 25C65 25 70 10 81 10C92 10 95 20 106 20C117 20 121 8 132 8C140 8 146 12 153 11" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+        <section class="telemetry">
+          <article class="tile card accent"><p class="tile-label">Aussen</p><p class="tile-value mono">+5.2°</p></article>
+          <article class="tile card accent"><p class="tile-label">Warmwasser</p><p class="tile-value mono">52.8°</p></article>
+          <article class="tile card accent"><p class="tile-label">Vorlauf</p><p class="tile-value mono">36.4°</p></article>
+          <article class="tile card accent"><p class="tile-label">Ruecklauf</p><p class="tile-value mono">28.1°</p></article>
+        </section>
+      </section>
+      <aside class="side">
+        <section class="panel card accent">
+          <div class="panel-head"><h3 class="panel-title">IO</h3><span class="eyebrow">Akteure</span></div>
+          <table class="table">
+            <thead><tr><th>Name</th><th class="mono">Status</th></tr></thead>
+            <tbody>
+              <tr><td>Verdichter</td><td><span class="table-status mono"><span class="dot on"></span>AN</span></td></tr>
+              <tr><td>FBH-Pumpe</td><td><span class="table-status mono"><span class="dot on"></span>AN</span></td></tr>
+              <tr><td>Ventil WW</td><td><span class="table-status mono"><span class="dot"></span>AUS</span></td></tr>
+              <tr><td>Heizstab HZ</td><td><span class="table-status mono"><span class="dot"></span>AUS</span></td></tr>
+              <tr><td>Heizstab WW</td><td><span class="table-status mono"><span class="dot"></span>AUS</span></td></tr>
+              <tr><td>Alarm</td><td><span class="table-status mono"><span class="dot"></span>OK</span></td></tr>
+            </tbody>
+          </table>
+        </section>
+        <section class="panel card accent">
+          <div class="panel-head"><h3 class="panel-title">Steuerung</h3><span class="eyebrow">Operator</span></div>
+          <div class="control-stack">
+            <label class="field">
+              <span class="field-label">Betriebsart</span>
+              <select><option selected>Normal</option><option>Absenkung</option><option>Nur Warmwasser</option><option>Service</option></select>
+            </label>
+            <button class="cta" type="button">Legionellenschutz starten</button>
+          </div>
+        </section>
+      </aside>
+    </section>
+    <footer class="footer mono">FE 0.2.0 · BE 0.2.0 · SSE verbunden · 2026-05-09</footer>
+  </main>
+</body>
+</html>
