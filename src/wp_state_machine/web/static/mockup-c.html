@@ -78,6 +78,10 @@ body::after { background:radial-gradient(circle at 70% 52%, rgba(216,200,255,.08
 .title { font:600 15px/1 Geist,Inter,sans-serif; letter-spacing:.03em; }
 .mono,.footer { font-family:"JetBrains Mono",ui-monospace,monospace; }
 .io-grid { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px; }
+.io-tile { display:flex; flex-direction:column; gap:8px; padding:14px; border-radius:14px; background:var(--glass2); border:1px solid rgba(255,255,255,.06); }
+.io-label { font-size:12px; color:var(--muted); letter-spacing:.04em; }
+.io-label small { font-size:10px; opacity:.7; margin-left:4px; }
+.io-tile .io-pill { align-self:flex-start; }
 .io-row {
   gap:10px; padding:12px 13px; border-radius:16px; background:var(--glass2); border:1px solid rgba(255,255,255,.06);
 }
@@ -343,14 +347,33 @@ button {
       <article class="panel glass">
         <div class="panel-head">
           <div class="title">IO Grid</div>
-          <div class="sub mono">5 Zeilen / 6 Aktoren</div>
+          <div class="sub mono">6 Aktoren · 3×2 Grid</div>
         </div>
         <div class="io-grid mono">
-          <div class="io-row"><span>Alarm <small>A5</small></span><span class="io-pill" data-bind-alarm="alarm" data-bind-text="alarm:AKTIV|clear">---</span></div>
-          <div class="io-row"><span>Heizkreispumpe <small>A1</small></span><span class="io-pill" data-bind-bool="pumpe_hzkr" data-bind-text="pumpe_hzkr:an|aus">---</span></div>
-          <div class="io-row"><span>Ladepumpe <small>A2</small></span><span class="io-pill" data-bind-bool="ladepumpe" data-bind-text="ladepumpe:an|aus">---</span></div>
-          <div class="io-row"><span>Warmwasserventil <small>A7</small></span><span class="io-pill" data-bind-bool="ventil_ww" data-bind-text="ventil_ww:WW-Pos|Heiz-Pos">---</span></div>
-          <div class="io-row"><span>Heizstaebe <small>A8 / A9</small></span><span style="display:inline-flex; gap:6px; align-items:center;"><span class="io-pill" data-bind-alarm="heizstab_hz" data-bind-text="heizstab_hz:HZ aktiv|HZ aus">---</span><span class="io-pill" data-bind-alarm="heizstab_ww" data-bind-text="heizstab_ww:WW aktiv|WW aus">---</span></span></div>
+          <article class="io-tile">
+            <div class="io-label">Alarm <small>A5</small></div>
+            <span class="io-pill" data-bind-alarm="alarm" data-bind-text="alarm:AKTIV|clear">---</span>
+          </article>
+          <article class="io-tile">
+            <div class="io-label">Heizkreispumpe <small>A1</small></div>
+            <span class="io-pill" data-bind-bool="pumpe_hzkr" data-bind-text="pumpe_hzkr:an|aus">---</span>
+          </article>
+          <article class="io-tile">
+            <div class="io-label">Ladepumpe <small>A2</small></div>
+            <span class="io-pill" data-bind-bool="ladepumpe" data-bind-text="ladepumpe:an|aus">---</span>
+          </article>
+          <article class="io-tile">
+            <div class="io-label">Warmwasserventil <small>A7</small></div>
+            <span class="io-pill" data-bind-bool="ventil_ww" data-bind-text="ventil_ww:WW-Pos|Heiz-Pos">---</span>
+          </article>
+          <article class="io-tile">
+            <div class="io-label">Heizstab HZ <small>A8</small></div>
+            <span class="io-pill" data-bind-alarm="heizstab_hz" data-bind-text="heizstab_hz:aktiv|inaktiv">---</span>
+          </article>
+          <article class="io-tile">
+            <div class="io-label">Heizstab WW <small>A9</small></div>
+            <span class="io-pill" data-bind-alarm="heizstab_ww" data-bind-text="heizstab_ww:aktiv|inaktiv">---</span>
+          </article>
         </div>
       </article>
 
