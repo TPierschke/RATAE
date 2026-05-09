@@ -11,74 +11,109 @@
 
   var POLL_INTERVAL_MS = 5000;
 
-  // Sliding-window dT/dt tracker fuer ETA-Schaetzung im HEIZUNG-Mode.
-  // Strategy: localStorage-cached rate from previous heating cycles → instant
-  // estimate on boot. Live rate replaces it once 15s of tracking yield a
-  // positive RL slope. Last-good ETA is sticky for 60s.
-  // Default rate 0.115 deg/min derives from observed cycle 2026-05-09 18:24-49
-  // (RL 27.0 -> 29.3 over 20 min). See knowledge_waermepumpe.md.
-  var heizungTracker = { samples: [], lastEta: null, lastEtaT: 0 };
+  // Generic sliding-window dT/dt tracker fuer ETA in HEIZUNG / WARMWASSER /
+  // LEGIONELLENSCHUTZ. Pro Mode: eigener Tracker, eigener localStorage-Key,
+  // eigener Default-Rate (Erfahrungswerte). Live-Rate ueberschreibt Default
+  // sobald >=15s Tracking eine positive Steigung zeigt.
   var ETA_STICKY_MS = 60 * 1000;
-  var DEFAULT_RL_RATE = 0.115; // deg per minute, observed baseline
-  var LS_RATE_KEY = 'wpsm.heizung_rl_rate';
+  var trackers = {
+    heating: {
+      samples: [], lastEta: null, lastEtaT: 0,
+      defaultRate: 0.115,    // deg/min, observed 2026-05-09 18:24-49 (RL 27.0->29.3 / 20min)
+      lsKey: 'wpsm.rate.heating'
+    },
+    ww: {
+      samples: [], lastEta: null, lastEtaT: 0,
+      defaultRate: 0.5,      // deg/min, typischer WW-Heizverlauf (Annahme, wird live korrigiert)
+      lsKey: 'wpsm.rate.ww'
+    },
+    legio: {
+      samples: [], lastEta: null, lastEtaT: 0,
+      defaultRate: 0.4,      // deg/min, Legio braucht laenger weil hoehere End-Temp
+      lsKey: 'wpsm.rate.legio'
+    }
+  };
 
-  function loadStoredRate() {
+  function loadStoredRate(mode) {
+    var t = trackers[mode];
     try {
-      var raw = window.localStorage.getItem(LS_RATE_KEY);
+      var raw = window.localStorage.getItem(t.lsKey);
       if (raw) {
         var r = parseFloat(raw);
-        if (r > 0.02 && r < 1.0) return r;
+        if (r > 0.02 && r < 2.0) return r;
       }
     } catch (e) {}
-    return DEFAULT_RL_RATE;
+    return t.defaultRate;
   }
 
-  function storeRate(rate) {
+  function storeRate(mode, rate) {
     try {
-      window.localStorage.setItem(LS_RATE_KEY, rate.toFixed(4));
+      window.localStorage.setItem(trackers[mode].lsKey, rate.toFixed(4));
     } catch (e) {}
   }
 
-  function trackHeizungSample(rl) {
+  function trackSample(mode, value) {
+    var t = trackers[mode];
     var now = Date.now();
-    heizungTracker.samples.push({ t: now, rl: rl });
+    t.samples.push({ t: now, v: value });
     var cutoff = now - 6 * 60 * 1000;
-    heizungTracker.samples = heizungTracker.samples.filter(function (s) {
-      return s.t > cutoff;
-    });
+    t.samples = t.samples.filter(function (s) { return s.t > cutoff; });
   }
 
-  function calcHeizungEta(diffToOff) {
-    // Returns { eta: <minutes|null>, status: 'estimate'|'ok'|'sticky'|'stagnant'|'warming' }
+  function calcEta(mode, diffToOff) {
+    // Returns { eta: <minutes|null>, status: 'estimate'|'ok'|'sticky'|'warming' }
+    var t = trackers[mode];
     var now = Date.now();
-    var s = heizungTracker.samples;
+    var s = t.samples;
     if (s.length >= 2) {
       var first = s[0];
       var last = s[s.length - 1];
       var dtMin = (last.t - first.t) / 60000;
-      var drC = last.rl - first.rl;
-      if (dtMin >= 0.25 && drC > 0.02) {
-        var rate = drC / dtMin;
+      var dv = last.v - first.v;
+      if (dtMin >= 0.25 && dv > 0.02) {
+        var rate = dv / dtMin;
         var etaMin = diffToOff / rate;
         if (etaMin > 0 && etaMin <= 180) {
           var rounded = Math.round(etaMin);
-          heizungTracker.lastEta = rounded;
-          heizungTracker.lastEtaT = now;
-          storeRate(rate);
+          t.lastEta = rounded;
+          t.lastEtaT = now;
+          storeRate(mode, rate);
           return { eta: rounded, status: 'ok' };
         }
       }
     }
-    if (heizungTracker.lastEta !== null && now - heizungTracker.lastEtaT < ETA_STICKY_MS) {
-      return { eta: heizungTracker.lastEta, status: 'sticky' };
+    if (t.lastEta !== null && now - t.lastEtaT < ETA_STICKY_MS) {
+      return { eta: t.lastEta, status: 'sticky' };
     }
-    // Fallback: cached / default rate -> instant estimate
-    var fallback = loadStoredRate();
+    var fallback = loadStoredRate(mode);
     var fallbackEta = diffToOff / fallback;
     if (fallbackEta > 0 && fallbackEta <= 180) {
       return { eta: Math.round(fallbackEta), status: 'estimate' };
     }
     return { eta: null, status: 'warming' };
+  }
+
+  function resetTrackersExcept(activeMode) {
+    Object.keys(trackers).forEach(function (k) {
+      if (k !== activeMode) {
+        trackers[k].samples = [];
+        trackers[k].lastEta = null;
+        trackers[k].lastEtaT = 0;
+      }
+    });
+  }
+
+  function etaSuffix(result) {
+    if (result.status === 'ok' || result.status === 'sticky') {
+      return ' · ETA ~' + result.eta + ' min';
+    }
+    if (result.status === 'estimate') {
+      return ' · ETA ~' + result.eta + ' min (Schaetzung)';
+    }
+    if (result.status === 'warming') {
+      return ' · ETA wird ermittelt...';
+    }
+    return '';
   }
   var MODE_NAMES = {
     1: 'Standby',
@@ -266,48 +301,62 @@
     var verdichter = normalizeBool(state.verdichter);
     var verdichterLabel = verdichter === true ? 'aktiv' : (verdichter === false ? 'aus' : '---');
 
-    // Tracker reset wenn nicht mehr HEIZUNG
-    if (rawState !== 'HEIZUNG') {
-      heizungTracker.samples = [];
-      heizungTracker.lastEta = null;
-      heizungTracker.lastEtaT = 0;
-    }
+    // Reset-Logik: nur der zum aktiven State passende Tracker bleibt aktiv
+    var activeMode = null;
+    if (rawState === 'HEIZUNG') activeMode = 'heating';
+    else if (rawState === 'WARMWASSER') activeMode = 'ww';
+    else if (rawState === 'LEGIONELLENSCHUTZ') activeMode = 'legio';
+    resetTrackersExcept(activeMode);
 
     switch (rawState) {
       case 'BEREIT':
         return 'Anlage in Bereitschaft';
       case 'HEIZUNG': {
-        // UVR-Hysterese: WP schaltet AUS wenn Ruecklauf >= Vorlauf-Soll + 4K,
-        // EIN wenn RL <= Vorlauf-Soll (4K Hub auf dem RL).
-        // Quelle: User-Korrektur 2026-05-09 + knowledge_waermepumpe.md
+        // UVR-Hysterese: WP schaltet AUS wenn Ruecklauf >= Vorlauf-Soll + 4K
+        // (4K Hub liegt OBERHALB des Soll). Quelle: User-Korrektur 2026-05-09.
         var vlSoll = typeof state.vorlauf_soll === 'number' ? state.vorlauf_soll : null;
         var rl = typeof state.ruecklauf === 'number' ? state.ruecklauf : null;
         if (rl !== null && vlSoll !== null) {
-          trackHeizungSample(rl);
+          trackSample('heating', rl);
           var rlAus = vlSoll + 4;
           var diff = rlAus - rl;
           if (diff > 0.1) {
-            var etaResult = calcHeizungEta(diff);
-            var etaPart;
-            if (etaResult.status === 'ok' || etaResult.status === 'sticky') {
-              etaPart = ' · ETA ~' + etaResult.eta + ' min';
-            } else if (etaResult.status === 'estimate') {
-              etaPart = ' · ETA ~' + etaResult.eta + ' min (Schaetzung)';
-            } else if (etaResult.status === 'warming') {
-              etaPart = ' · ETA wird ermittelt...';
-            } else {
-              etaPart = '';
-            }
-            return 'Verdichter ' + verdichterLabel + ' · RL ' + rl.toFixed(1) + '° · noch ' + diff.toFixed(1) + '° bis Aus (' + rlAus.toFixed(1) + '°)' + etaPart;
+            return 'Verdichter ' + verdichterLabel + ' · RL ' + rl.toFixed(1) + '° · noch ' + diff.toFixed(1) + '° bis Aus (' + rlAus.toFixed(1) + '°)' + etaSuffix(calcEta('heating', diff));
           }
           return 'Verdichter ' + verdichterLabel + ' · RL ' + rl.toFixed(1) + '° · am Aus-Punkt (' + rlAus.toFixed(1) + '°)';
         }
         return 'Verdichter ' + verdichterLabel + ' · Vorlauf ' + vorlauf;
       }
-      case 'WARMWASSER':
+      case 'WARMWASSER': {
+        // WP heizt bis WW-Ist >= WW-Soll. Soll kommt aus state.setpoints.ww_soll_normal,
+        // Fallback 50° (Standard im UVR F:2 WW_ANF.1).
+        var ww = typeof state.warmwasser === 'number' ? state.warmwasser : null;
+        var spWw = state.setpoints || {};
+        var wwSoll = typeof spWw.ww_soll_normal === 'number' ? spWw.ww_soll_normal : 50;
+        if (ww !== null) {
+          trackSample('ww', ww);
+          var diffWw = wwSoll - ww;
+          if (diffWw > 0.1) {
+            return 'WW-Bereitung · WW ' + ww.toFixed(1) + '° · noch ' + diffWw.toFixed(1) + '° bis Aus (' + wwSoll.toFixed(1) + '°)' + etaSuffix(calcEta('ww', diffWw));
+          }
+          return 'WW-Bereitung · WW ' + ww.toFixed(1) + '° · am Soll (' + wwSoll.toFixed(1) + '°)';
+        }
         return 'WW-Bereitung · Vorlauf ' + vorlauf;
-      case 'LEGIONELLENSCHUTZ':
+      }
+      case 'LEGIONELLENSCHUTZ': {
+        // F:9 WW_ANF.2 Legionellenschutz, Ziel 70°C (knowledge_waermepumpe.md).
+        var wwL = typeof state.warmwasser === 'number' ? state.warmwasser : null;
+        var ziel = 70;
+        if (wwL !== null) {
+          trackSample('legio', wwL);
+          var diffL = ziel - wwL;
+          if (diffL > 0.1) {
+            return 'Legionellenschutz · WW ' + wwL.toFixed(1) + '° · noch ' + diffL.toFixed(1) + '° bis Ziel (' + ziel.toFixed(1) + '°)' + etaSuffix(calcEta('legio', diffL));
+          }
+          return 'Legionellenschutz · WW ' + wwL.toFixed(1) + '° · Ziel erreicht (' + ziel.toFixed(1) + '°)';
+        }
         return 'Legionellenschutz aktiv · WW ' + warmwasser + ' (Ziel 70°C)';
+      }
       case 'STANDBY':
         return 'Standby';
       default:
