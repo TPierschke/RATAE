@@ -24,19 +24,20 @@
     });
   }
 
-  function calcHeizungEtaMin(diffToOff) {
+  function calcHeizungEta(diffToOff) {
+    // Returns { eta: <minutes|null>, status: <'warming'|'stagnant'|'ok'|'unrealistic'> }
     var s = heizungTracker.samples;
-    if (s.length < 3) return null;
+    if (s.length < 2) return { eta: null, status: 'warming' };
     var first = s[0];
     var last = s[s.length - 1];
     var dtMin = (last.t - first.t) / 60000;
     var drC = last.rl - first.rl;
-    if (dtMin < 1) return null;
-    if (drC <= 0.05) return null;
+    if (dtMin < 0.5) return { eta: null, status: 'warming' };
+    if (drC <= 0.02) return { eta: null, status: 'stagnant' };
     var rate = drC / dtMin;
     var etaMin = diffToOff / rate;
-    if (etaMin <= 0 || etaMin > 180) return null;
-    return Math.round(etaMin);
+    if (etaMin <= 0 || etaMin > 180) return { eta: null, status: 'unrealistic' };
+    return { eta: Math.round(etaMin), status: 'ok' };
   }
   var MODE_NAMES = {
     1: 'Standby',
@@ -240,8 +241,17 @@
           trackHeizungSample(rl);
           var diff = vlSoll - rl;
           if (diff > 0.1) {
-            var eta = calcHeizungEtaMin(diff);
-            var etaPart = eta !== null ? ' · ETA ~' + eta + ' min' : '';
+            var etaResult = calcHeizungEta(diff);
+            var etaPart;
+            if (etaResult.status === 'ok') {
+              etaPart = ' · ETA ~' + etaResult.eta + ' min';
+            } else if (etaResult.status === 'warming') {
+              etaPart = ' · ETA wird ermittelt...';
+            } else if (etaResult.status === 'stagnant') {
+              etaPart = ' · RL stagniert';
+            } else {
+              etaPart = '';
+            }
             return 'Verdichter ' + verdichterLabel + ' · RL ' + rl.toFixed(1) + '° · noch ' + diff.toFixed(1) + '° bis Abschaltung (Soll ' + vlSoll.toFixed(1) + '°)' + etaPart;
           }
           return 'Verdichter ' + verdichterLabel + ' · RL ' + rl.toFixed(1) + '° · ueber Aus-Punkt (Soll ' + vlSoll.toFixed(1) + '°)';
