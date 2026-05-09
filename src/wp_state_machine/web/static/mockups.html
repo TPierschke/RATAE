@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>RATAE Mockup-Vergleich</title>
+<style>
+body{margin:0;font:14px/1.4 system-ui,sans-serif;background:#0e0f12;color:#e9eaef}
+.bar{display:flex;gap:12px;padding:16px 20px;border-bottom:1px solid #1f2733;align-items:center}
+.bar h1{margin:0;font-size:14px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#9aa3b3}
+.bar a{color:#34e0c1;text-decoration:none;padding:6px 12px;border:1px solid #1f2733;border-radius:8px;font-size:12px;letter-spacing:0.04em}
+.bar a:hover{border-color:#34e0c1;background:#0d1f1a}
+.bar a.active{background:#34e0c1;color:#04140f;border-color:#34e0c1}
+iframe{width:100%;height:calc(100vh - 56px);border:0;display:block}
+</style>
+</head>
+<body>
+<div class="bar">
+  <h1>RATAE Mockups</h1>
+  <a href="?m=a" id="la">A · Neon Console</a>
+  <a href="?m=b" id="lb">B · Editorial Brutalism</a>
+  <a href="?m=c" id="lc">C · Glass Future</a>
+  <a href="/" style="margin-left:auto;color:#9aa3b3">← back to live UI</a>
+</div>
+<iframe id="frame"></iframe>
+<script>
+const m = (new URLSearchParams(location.search)).get('m') || 'a';
+document.getElementById('frame').src = '/static/mockup-' + m + '.html';
+['a','b','c'].forEach(k => {
+  const el = document.getElementById('l'+k);
+  if (k === m) el.classList.add('active');
+});
+</script>
+</body>
+</html>

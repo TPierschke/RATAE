@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RATAE / WP-State-Machine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f5f1e8;
+      --ink: #11100d;
+      --muted: #655f56;
+      --rule: #1f1b16;
+      --accent: #d8200c;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Fraunces", serif;
+    }
+
+    .mono,
+    .tag,
+    .meta,
+    .kicker,
+    .tiny,
+    select,
+    button,
+    footer {
+      font-family: "JetBrains Mono", monospace;
+    }
+
+    .page {
+      min-height: 100vh;
+      padding: 18px;
+      display: grid;
+      gap: 28px;
+      overflow: hidden;
+    }
+
+    .tag {
+      justify-self: end;
+      border: 1.5px solid var(--ink);
+      padding: 5px 8px;
+      font-size: 11px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .issue {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: end;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--rule);
+    }
+
+    .mark {
+      margin: 0;
+      font-size: clamp(42px, 9vw, 96px);
+      line-height: .88;
+      letter-spacing: -.05em;
+    }
+
+    .meta {
+      font-size: 11px;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-align: right;
+    }
+
+    .hero {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: start;
+      min-height: 34vh;
+    }
+
+    .hero::before {
+      content: "02";
+      position: absolute;
+      top: -10px;
+      left: min(58vw, 520px);
+      font-size: clamp(90px, 18vw, 220px);
+      line-height: .8;
+      color: rgba(17, 16, 13, .07);
+      pointer-events: none;
+    }
+
+    .kicker {
+      font-size: 11px;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .state {
+      margin: 8px 0 0;
+      font-size: clamp(78px, 17vw, 210px);
+      line-height: .8;
+      letter-spacing: -.07em;
+      max-width: 7ch;
+      position: relative;
+      z-index: 1;
+    }
+
+    .lead {
+      margin: 8px 0 0;
+      font-size: clamp(18px, 2.2vw, 28px);
+      line-height: 1.15;
+      max-width: 20ch;
+    }
+
+    .lead::first-letter {
+      float: left;
+      font-size: 62px;
+      line-height: .78;
+      padding: .12rem .35rem 0 0;
+    }
+
+    .side {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      font-size: 11px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .telemetry {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      border-top: 2px solid var(--rule);
+      border-left: 2px solid var(--rule);
+    }
+
+    .tile {
+      min-height: 132px;
+      padding: 14px;
+      border-right: 2px solid var(--rule);
+      border-bottom: 2px solid var(--rule);
+      display: grid;
+      align-content: space-between;
+      gap: 10px;
+    }
+
+    .value {
+      font-family: "JetBrains Mono", monospace;
+      font-size: clamp(22px, 3vw, 36px);
+      font-weight: 700;
+      letter-spacing: -.04em;
+    }
+
+    .sections {
+      display: grid;
+      grid-template-columns: 1.15fr .92fr;
+      gap: 28px;
+      align-items: start;
+    }
+
+    .title {
+      margin: 0 0 14px;
+      font-size: clamp(34px, 4vw, 56px);
+      line-height: .92;
+      letter-spacing: -.04em;
+      border-top: 2px solid var(--rule);
+      padding-top: 8px;
+    }
+
+    .list { display: grid; gap: 8px; }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: baseline;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(17, 16, 13, .22);
+    }
+
+    .status {
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: .14em;
+    }
+
+    .on { color: var(--ink); }
+    .off, .clear { color: var(--muted); }
+
+    .box {
+      border: 2px solid var(--rule);
+      padding: 14px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .tiny {
+      font-size: 11px;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+    }
+
+    label { display: grid; gap: 7px; }
+
+    select,
+    button {
+      width: 100%;
+      border-radius: 0;
+      font-size: 15px;
+      padding: 14px 15px;
+    }
+
+    select {
+      border: 1.5px solid var(--ink);
+      background: transparent;
+      color: var(--ink);
+    }
+
+    button {
+      border: 1.5px solid var(--accent);
+      background: var(--accent);
+      color: var(--bg);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .note {
+      font-size: 11px;
+      line-height: 1.45;
+      color: var(--muted);
+    }
+
+    footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      padding-top: 10px;
+      border-top: 2px solid var(--rule);
+      font-size: 11px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    @media (max-width: 920px) {
+      .issue,
+      .hero,
+      .sections {
+        grid-template-columns: 1fr;
+      }
+
+      .side {
+        writing-mode: horizontal-tb;
+        transform: none;
+      }
+
+      .hero::before {
+        left: auto;
+        right: 0;
+        top: 12px;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .page {
+        padding: 14px;
+        gap: 22px;
+      }
+
+      .telemetry {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .tile {
+        min-height: 116px;
+      }
+
+      footer {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="tag">DRY-RUN</div>
+
+    <section class="issue">
+      <h1 class="mark">RATAE</h1>
+      <div class="meta">Vol. 0.2 / Mai 2026 / WP-State-Machine</div>
+    </section>
+
+    <section class="hero">
+      <div>
+        <div class="kicker">Ausgabe No. 02 / Aktueller Zustand</div>
+        <h2 class="state">HEIZUNG</h2>
+        <p class="lead">Verdichter aktiv · Vorlauf 36.4°</p>
+      </div>
+      <div class="side">Kontrollblatt / Heizkreis / Laufender Takt</div>
+    </section>
+
+    <section class="telemetry" aria-label="Telemetrie">
+      <article class="tile">
+        <div class="kicker">Aussen</div>
+        <div class="value">+5.2°</div>
+      </article>
+      <article class="tile">
+        <div class="kicker">Warmwasser</div>
+        <div class="value">52.8°</div>
+      </article>
+      <article class="tile">
+        <div class="kicker">Vorlauf Puffer</div>
+        <div class="value">36.4°</div>
+      </article>
+      <article class="tile">
+        <div class="kicker">Ruecklauf FBH</div>
+        <div class="value">28.1°</div>
+      </article>
+    </section>
+
+    <section class="sections">
+      <div>
+        <h3 class="title">IO-Status</h3>
+        <div class="list mono">
+          <div class="row"><span>Verdichter</span><span class="status on">ein</span></div>
+          <div class="row"><span>FBH-Pumpe</span><span class="status on">ein</span></div>
+          <div class="row"><span>Ventil WW</span><span class="status off">aus</span></div>
+          <div class="row"><span>Heizstab HZ</span><span class="status off">aus</span></div>
+          <div class="row"><span>Heizstab WW</span><span class="status off">aus</span></div>
+          <div class="row"><span>Alarm</span><span class="status clear">klar</span></div>
+        </div>
+      </div>
+
+      <div>
+        <h3 class="title">Steuerung</h3>
+        <div class="box">
+          <label>
+            <span class="tiny">Betriebsart</span>
+            <select aria-label="Betriebsart">
+              <option selected>Normal</option>
+              <option>Absenkung</option>
+              <option>Nur Warmwasser</option>
+              <option>Service</option>
+            </select>
+          </label>
+          <button type="button">Legionellenschutz starten</button>
+          <div class="note mono">Akzentfarbe nur fuer Eingriff und Alarm. Redaktionelle Hierarchie vor Ornament.</div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <span>FE 0.2.0 · BE 0.2.0</span>
+      <span>SSE verbunden</span>
+      <span>2026-05-09</span>
+    </footer>
+  </main>
+</body>
+</html>

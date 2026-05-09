@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RATAE · WP State Machine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Inter:wght@500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a1428; --bg2:#0e1626; --text:rgba(242,247,255,.94); --muted:rgba(217,225,242,.62);
+  --line:rgba(255,255,255,.09); --glass:rgba(255,255,255,.08); --glass2:rgba(255,255,255,.05);
+  --mint:#b8f1d4; --cyan:#b9e8ff; --lav:#d8c8ff; --peach:#ffc7a5; --alert:#ff8a8a;
+  --shadow:0 24px 60px rgba(0,0,0,.18); --r:20px;
+}
+* { box-sizing:border-box; }
+html,body { height:100%; }
+body {
+  margin:0; color:var(--text); font-family:Inter,Geist,system-ui,sans-serif; overflow-x:hidden;
+  background:
+    radial-gradient(42rem 42rem at 10% 8%, rgba(184,241,212,.18), transparent 58%),
+    radial-gradient(36rem 36rem at 86% 14%, rgba(216,200,255,.16), transparent 60%),
+    radial-gradient(30rem 30rem at 75% 88%, rgba(255,199,165,.14), transparent 58%),
+    linear-gradient(180deg, var(--bg), var(--bg2));
+}
+body::before,body::after {
+  content:""; position:fixed; inset:-12%; pointer-events:none; filter:blur(72px);
+}
+body::before { background:radial-gradient(circle at 28% 34%, rgba(185,232,255,.12), transparent 34%); }
+body::after { background:radial-gradient(circle at 70% 52%, rgba(216,200,255,.08), transparent 30%); }
+.shell {
+  width:min(1180px, calc(100% - 32px)); margin:24px auto; display:grid; gap:16px; position:relative; z-index:1;
+}
+.glass {
+  background:linear-gradient(180deg, rgba(255,255,255,.11), rgba(255,255,255,.055));
+  border:1px solid var(--line); backdrop-filter:blur(28px) saturate(140%); -webkit-backdrop-filter:blur(28px) saturate(140%);
+  box-shadow:var(--shadow);
+}
+.banner,.header,.hero,.tile,.panel,.footer { border-radius:var(--r); animation:rise .75s both; }
+.banner {
+  padding:11px 16px; text-align:center; font-size:12px; letter-spacing:.22em; text-transform:uppercase;
+  background:linear-gradient(90deg, rgba(255,138,138,.16), rgba(255,199,165,.1));
+}
+.header,.hero,.panel { padding:18px 20px; }
+.footer { padding:18px 20px; }
+.header,.panel-head,.io-row,.footer { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.header { gap:16px; }
+.brand { display:grid; gap:5px; }
+.logo { font:700 14px/1 Geist,Inter,sans-serif; letter-spacing:.32em; }
+.sub,.label,.eyebrow { color:var(--muted); }
+.sub { font-size:13px; }
+.pill,.io-pill {
+  display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:999px;
+  border:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.06); font-size:12px;
+  letter-spacing:.12em; text-transform:uppercase;
+}
+.pill { color:#eafff4; }
+.dot { color:var(--mint); font-size:11px; }
+.hero {
+  display:grid; gap:10px; padding:26px 24px 24px;
+  background:linear-gradient(135deg, rgba(255,255,255,.12), rgba(255,255,255,.05));
+}
+.eyebrow { font-size:12px; letter-spacing:.18em; text-transform:uppercase; }
+.state { font:800 clamp(42px, 9vw, 96px)/.9 Inter,Geist,sans-serif; letter-spacing:-.05em; }
+.state-sub { color:rgba(235,241,252,.78); font-size:15px; }
+.grid-4,.grid-2,.ctrl { display:grid; gap:16px; }
+.grid-4 { grid-template-columns:repeat(4, minmax(0,1fr)); }
+.grid-2 { grid-template-columns:1.2fr .8fr; }
+.tile,.panel { transition:transform .24s ease, border-color .24s ease; }
+.tile { padding:18px; }
+.tile:hover,.panel:hover { transform:scale(1.012); border-color:rgba(255,255,255,.14); }
+.label { font-size:12px; letter-spacing:.08em; text-transform:uppercase; }
+.value { margin-top:10px; font:700 clamp(28px, 4.6vw, 44px)/1 Inter,Geist,sans-serif; letter-spacing:-.045em; }
+.value small { font-size:.48em; color:rgba(255,255,255,.68); }
+.warm .value { color:var(--peach); }
+.live .value { color:var(--mint); }
+.title { font:600 15px/1 Geist,Inter,sans-serif; letter-spacing:.03em; }
+.mono,.footer { font-family:"JetBrains Mono",ui-monospace,monospace; }
+.io-grid { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px; }
+.io-row {
+  gap:10px; padding:12px 13px; border-radius:16px; background:var(--glass2); border:1px solid rgba(255,255,255,.06);
+}
+.io-pill { padding:8px 12px; font-size:11px; }
+.on { color:#09160f; background:rgba(184,241,212,.92); }
+.off { color:rgba(242,247,255,.74); }
+.ctrl { gap:14px; }
+select,button {
+  width:100%; padding:15px 16px; border-radius:16px; border:1px solid rgba(255,255,255,.1); font:600 14px/1 Inter,Geist,sans-serif;
+}
+select { color:var(--text); background:rgba(255,255,255,.07); outline:none; }
+button {
+  color:#13202d; background:linear-gradient(135deg, var(--mint), var(--cyan) 52%, var(--peach));
+  box-shadow:0 16px 34px rgba(184,241,212,.18);
+}
+.footer { color:var(--muted); font-size:12px; line-height:1.4; }
+.ok { color:var(--mint); }
+@keyframes rise { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+.banner { animation-delay:.02s; } .header { animation-delay:.08s; } .hero { animation-delay:.14s; }
+.tile:nth-child(1) { animation-delay:.18s; } .tile:nth-child(2) { animation-delay:.24s; }
+.tile:nth-child(3) { animation-delay:.3s; } .tile:nth-child(4) { animation-delay:.36s; }
+.panel:nth-of-type(1) { animation-delay:.42s; } .panel:nth-of-type(2) { animation-delay:.48s; } .footer { animation-delay:.54s; }
+@media (max-width:900px) {
+  .grid-4,.grid-2,.io-grid { grid-template-columns:1fr; }
+  .header,.footer { align-items:flex-start; flex-direction:column; }
+}
+</style>
+</head>
+<body>
+<main class="shell">
+  <section class="banner glass">DRY-RUN aktiv</section>
+
+  <header class="header glass">
+    <div class="brand">
+      <div class="logo">RATAE</div>
+      <div class="sub">WP State Machine</div>
+    </div>
+    <div class="pill"><span class="dot">●</span> MODBUS ONLINE</div>
+  </header>
+
+  <section class="hero glass">
+    <div class="eyebrow">Aktueller Zustand</div>
+    <div class="state">HEIZUNG</div>
+    <div class="state-sub">Verdichter aktiv · Vorlauf 36.4°</div>
+  </section>
+
+  <section class="grid-4">
+    <article class="tile glass live">
+      <div class="label">Aussen</div>
+      <div class="value">+5.2<small>°</small></div>
+    </article>
+    <article class="tile glass warm">
+      <div class="label">Warmwasser</div>
+      <div class="value">52.8<small>°</small></div>
+    </article>
+    <article class="tile glass">
+      <div class="label">Vorlauf Puffer</div>
+      <div class="value">36.4<small>°</small></div>
+    </article>
+    <article class="tile glass">
+      <div class="label">Ruecklauf FBH</div>
+      <div class="value">28.1<small>°</small></div>
+    </article>
+  </section>
+
+  <section class="grid-2">
+    <article class="panel glass">
+      <div class="panel-head">
+        <div class="title">IO Grid</div>
+        <div class="sub mono">6 Aktoren</div>
+      </div>
+      <div class="io-grid mono">
+        <div class="io-row"><span>Verdichter</span><span class="io-pill on">aktiv</span></div>
+        <div class="io-row"><span>Heizkreispumpe</span><span class="io-pill on">aktiv</span></div>
+        <div class="io-row"><span>3WV Heizung</span><span class="io-pill on">offen</span></div>
+        <div class="io-row"><span>3WV Warmwasser</span><span class="io-pill off">bereit</span></div>
+        <div class="io-row"><span>Heizstab</span><span class="io-pill off">inaktiv</span></div>
+        <div class="io-row"><span>Zirkulation</span><span class="io-pill off">aus</span></div>
+      </div>
+    </article>
+
+    <article class="panel glass">
+      <div style="display:grid; gap:14px;">
+        <div class="panel-head">
+          <div class="title">Steuerung</div>
+          <div class="pill" style="padding:8px 12px;color:#ffe3d2;"><span style="color:var(--peach);">●</span> bereit</div>
+        </div>
+        <div>
+          <label class="label" for="mode" style="display:block; margin-bottom:8px;">Betriebsart</label>
+          <select id="mode" aria-label="Betriebsart">
+            <option selected>Normal</option>
+            <option>Eco</option>
+            <option>Boost</option>
+            <option>Service</option>
+          </select>
+        </div>
+        <button type="button">Legionellenschutz starten</button>
+      </div>
+    </article>
+  </section>
+
+  <footer class="footer glass">
+    <span>FE 0.2.0 · BE 0.2.0</span>
+    <span>SSE <span class="ok">● verbunden</span> · 2026-05-09</span>
+  </footer>
+</main>
+</body>
+</html>
