@@ -59,13 +59,62 @@ body {
   flex-shrink: 0;
 }
 
+/* Grosse Variante fuer den Verdichter-Indikator in der Haupt-State-Card */
+.status-dot-lg {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+}
+
+/* Tab-Navigation */
+.tab-bar {
+  display: flex;
+  gap: 0.25rem;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  padding: 0.25rem;
+}
+.tab-btn {
+  flex: 1;
+  background: transparent;
+  color: var(--color-gray);
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.55rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.tab-btn:hover { color: white; }
+.tab-active {
+  background: var(--color-accent);
+  color: #0f172a;
+}
+.tab-active:hover { color: #0f172a; }
+
+/* SPS-Style: aktiv=gruen, inaktiv=rot. Echter Alarm-Output blinkt rot mit Aura. */
 .status-dot.on { background-color: var(--color-green); }
-.status-dot.off { background-color: var(--color-gray); }
-.status-dot.alarm { background-color: var(--color-red); animation: blink 0.8s step-start infinite; }
+.status-dot.off { background-color: var(--color-red); }
+.status-dot.alarm {
+  background-color: var(--color-red);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.7);
+  animation: alarm-aura 1s ease-in-out infinite;
+}
 .status-dot.unknown { background-color: var(--color-yellow); }
 
-@keyframes blink {
-  50% { opacity: 0; }
+@keyframes alarm-aura {
+  0%, 100% {
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.6);
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 18px 4px rgba(239, 68, 68, 1);
+    opacity: 0.85;
+    transform: scale(1.15);
+  }
 }
 
 /* Temp Value */

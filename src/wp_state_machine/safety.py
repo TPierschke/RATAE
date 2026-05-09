@@ -54,6 +54,18 @@ WHITELIST: Final[dict[str, dict]] = {
         "allowed_values": {1},
         "description": "Verdichter-WW-Boost. 1=starten. Auto-Stop bei 70 Grad.",
     },
+    "3E80093126": {
+        "name": "WW_ANF.2 STOPPEN",
+        "function": "F:9",
+        "allowed_values": {1},
+        "description": "Verdichter-WW-Boost manuell stoppen.",
+    },
+    "3EB0023118": {
+        "name": "WW_ANF.2 WW-Soll",
+        "function": "F:9",
+        "value_range": (30, 70),
+        "description": "WW-Soll-Temperatur Legionellenschutz (30..70 Grad C).",
+    },
 }
 
 # ---------------------------------------------------------------------------

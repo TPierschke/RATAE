@@ -1,5 +1,6 @@
-// WP State Machine Service Worker — PWA offline-faehig
-const CACHE_NAME = 'wp-sm-v1';
+// WP State Machine Service Worker — Network-First (kein stale Cache mehr)
+// Cache-Version hochzaehlen invalidiert den alten Cache beim Activate.
+const CACHE_NAME = 'wp-sm-v3';
 const STATIC_ASSETS = [
   '/',
   '/static/app.css',
@@ -9,9 +10,7 @@ const STATIC_ASSETS = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS);
-    })
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
   );
   self.skipWaiting();
 });
@@ -33,22 +32,22 @@ self.addEventListener('fetch', (event) => {
   // API und SSE-Stream immer live
   if (url.pathname.startsWith('/api') || url.pathname === '/stream' ||
       url.pathname.startsWith('/health') || url.pathname.startsWith('/state') ||
-      url.pathname.startsWith('/functions') || url.pathname.startsWith('/telemetry')) {
+      url.pathname.startsWith('/functions') || url.pathname.startsWith('/telemetry') ||
+      url.pathname.startsWith('/scrape')) {
     return;
   }
 
-  // Static Assets aus Cache
+  // Static Assets: NETWORK FIRST. Cache nur als Offline-Fallback.
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(event.request).then((response) => {
-        if (response && response.status === 200) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-        }
-        return response;
-      }).catch(() => {
-        // Offline: Root-Seite aus Cache
+    fetch(event.request).then((response) => {
+      if (response && response.status === 200) {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+      }
+      return response;
+    }).catch(() => {
+      return caches.match(event.request).then((cached) => {
+        if (cached) return cached;
         if (url.pathname === '/') return caches.match('/');
       });
     })

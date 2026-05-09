@@ -81,30 +81,40 @@ class Sensoren(BaseModel):
     hd_schalter: Optional[bool] = Field(None, description="HD-Schalter S13")
     nd_schalter2: Optional[bool] = Field(None, description="ND-Schalter 2 S14")
 
-    # Digital-Outputs (echte Zustaende)
-    pumpe_hzkr: Optional[float] = Field(None, description="FBH-Pumpe A1 (0-100%)")
-    ladepumpe: Optional[float] = Field(None, description="Ladepumpe A2 (0-100%)")
+    # Digital-Outputs (echte Zustaende — alle bool)
+    pumpe_hzkr: Optional[bool] = Field(None, description="FBH-Pumpe A1 an/aus")
+    ladepumpe: Optional[bool] = Field(None, description="Ladepumpe A2 an/aus")
     verdichter: Optional[bool] = Field(None, description="Verdichter laeuft A3")
-    ventil_ww: Optional[bool] = Field(None, description="WW-Ventil A7 (True=WW, False=Heizung)")
-    heizstab_hz: Optional[bool] = Field(None, description="Heizstab Puffer A8")
-    heizstab_ww: Optional[bool] = Field(None, description="Heizstab WW A9")
-    pumpe_zirku: Optional[bool] = Field(None, description="Zirkulationspumpe A10")
+    mvr0407_fl1: Optional[bool] = Field(None, description="Magnetventil R0407 FL1 A4")
     alarm: Optional[bool] = Field(None, description="Alarm-Ausgang A5")
+    mvr0407_nach2: Optional[bool] = Field(None, description="Magnetventil R0407 Nach2 A6")
+    ventil_ww: Optional[bool] = Field(None, description="WW-Ventil A7 (True=WW, False=Heizung)")
+    heizstab_hz: Optional[bool] = Field(None, description="Heizstab Puffer A8 (Heizung)")
+    heizstab_ww: Optional[bool] = Field(None, description="Heizstab WW A9 (Warmwasser)")
+    pumpe_zirku: Optional[bool] = Field(None, description="Zirkulationspumpe A10")
+    # Meldungen
+    meldung_heizung: Optional[bool] = Field(None, description="Meldung 8 Heizung")
 
     # Betriebsart aus Funktion F:1
     betriebsart: Optional[Betriebsart] = Field(None, description="Aktuelle Betriebsart F:1")
 
+    # Zaehler / Counter (Modbus M10..M13, uint32)
+    betr_std_verdichter: Optional[int] = Field(None, description="Betriebsstunden Verdichter")
+    schaltungen_verdichter: Optional[int] = Field(None, description="Schaltzyklen Verdichter")
+    betr_std_heizstab_fb: Optional[int] = Field(None, description="Betriebsstunden Heizstab FBH")
+    betr_std_heizstab_ww: Optional[int] = Field(None, description="Betriebsstunden Heizstab WW")
+
+    # Status-Codes / Messages (Modbus M14, M15, uint16)
+    message_fb: Optional[int] = Field(None, description="Status-Code Heizung")
+    message_ww: Optional[int] = Field(None, description="Status-Code WW")
+
+    # Sollwerte / weitere
+    vorlauf_soll: Optional[float] = Field(None, description="Vorlauf-Soll-Temperatur")
+    traum1: Optional[float] = Field(None, description="Raum-Solltemperatur effektiv")
+
     # Zeitstempel der letzten Aktualisierung
     timestamp: datetime = Field(default_factory=_utcnow)
     source: str = Field("unknown", description="Datenquelle: json_api | web_scraper | coe")
-
-    @field_validator("pumpe_hzkr", "ladepumpe", mode="before")
-    @classmethod
-    def clamp_percent(cls, v: object) -> Optional[float]:
-        if v is None:
-            return None
-        f = float(v)  # type: ignore[arg-type]
-        return max(0.0, min(100.0, f))
 
     def is_heizstab_active(self) -> bool:
         return bool(self.heizstab_hz or self.heizstab_ww)
@@ -134,6 +144,7 @@ class TelemetryRecord(BaseModel):
     """Ein Telemetrie-Datensatz fuer Postgres (Hypertable)."""
 
     timestamp: datetime = Field(default_factory=_utcnow)
+    # Analog inputs
     vorlauf: Optional[float] = None
     ruecklauf: Optional[float] = None
     warmwasser: Optional[float] = None
@@ -141,13 +152,38 @@ class TelemetryRecord(BaseModel):
     heissgas: Optional[float] = None
     fluessigkeit: Optional[float] = None
     saugleitung: Optional[float] = None
+    # Digital inputs
+    phasenwaechter: Optional[bool] = None
+    verdichter_freigabe: Optional[bool] = None
+    nd_schalter1: Optional[bool] = None
+    hd_schalter: Optional[bool] = None
+    nd_schalter2: Optional[bool] = None
+    # Digital outputs
+    pumpe_hzkr: Optional[bool] = None
+    ladepumpe: Optional[bool] = None
     verdichter: Optional[bool] = None
+    mvr0407_fl1: Optional[bool] = None
+    alarm: Optional[bool] = None
+    mvr0407_nach2: Optional[bool] = None
     ventil_ww: Optional[bool] = None
     heizstab_hz: Optional[bool] = None
     heizstab_ww: Optional[bool] = None
-    alarm: Optional[bool] = None
+    pumpe_zirku: Optional[bool] = None
+    meldung_heizung: Optional[bool] = None
+    # Mode + state
     betriebsart: Optional[int] = None
     wp_state: Optional[str] = None
+    # Counters
+    betr_std_verdichter: Optional[int] = None
+    schaltungen_verdichter: Optional[int] = None
+    betr_std_heizstab_fb: Optional[int] = None
+    betr_std_heizstab_ww: Optional[int] = None
+    # Status codes
+    message_fb: Optional[int] = None
+    message_ww: Optional[int] = None
+    # Setpoints
+    vorlauf_soll: Optional[float] = None
+    traum1: Optional[float] = None
 
     @classmethod
     def from_sensoren(cls, s: Sensoren, state: str) -> "TelemetryRecord":
@@ -160,13 +196,32 @@ class TelemetryRecord(BaseModel):
             heissgas=s.heissgas,
             fluessigkeit=s.fluessigkeit,
             saugleitung=s.saugleitung,
+            phasenwaechter=s.phasenwaechter,
+            verdichter_freigabe=s.verdichter_freigabe,
+            nd_schalter1=s.nd_schalter1,
+            hd_schalter=s.hd_schalter,
+            nd_schalter2=s.nd_schalter2,
+            pumpe_hzkr=s.pumpe_hzkr,
+            ladepumpe=s.ladepumpe,
             verdichter=s.verdichter,
+            mvr0407_fl1=s.mvr0407_fl1,
+            alarm=s.alarm,
+            mvr0407_nach2=s.mvr0407_nach2,
             ventil_ww=s.ventil_ww,
             heizstab_hz=s.heizstab_hz,
             heizstab_ww=s.heizstab_ww,
-            alarm=s.alarm,
+            pumpe_zirku=s.pumpe_zirku,
+            meldung_heizung=s.meldung_heizung,
             betriebsart=int(s.betriebsart) if s.betriebsart is not None else None,
             wp_state=state,
+            betr_std_verdichter=s.betr_std_verdichter,
+            schaltungen_verdichter=s.schaltungen_verdichter,
+            betr_std_heizstab_fb=s.betr_std_heizstab_fb,
+            betr_std_heizstab_ww=s.betr_std_heizstab_ww,
+            message_fb=s.message_fb,
+            message_ww=s.message_ww,
+            vorlauf_soll=s.vorlauf_soll,
+            traum1=s.traum1,
         )
 
 

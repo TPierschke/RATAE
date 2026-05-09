@@ -91,11 +91,37 @@ class PostgresStore:
             async with self._pool.acquire() as conn:
                 await conn.execute(
                     """
-                    INSERT INTO telemetry
-                        (ts, vorlauf, ruecklauf, warmwasser, aussen, heissgas,
-                         fluessigkeit, saugleitung, verdichter, ventil_ww,
-                         heizstab_hz, heizstab_ww, alarm, betriebsart, wp_state)
-                    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+                    INSERT INTO telemetry (
+                        ts,
+                        vorlauf, ruecklauf, warmwasser, aussen, heissgas,
+                        fluessigkeit, saugleitung,
+                        phasenwaechter, verdichter_freigabe,
+                        nd_schalter1, hd_schalter, nd_schalter2,
+                        pumpe_hzkr, ladepumpe, verdichter,
+                        mvr0407_fl1, alarm, mvr0407_nach2,
+                        ventil_ww, heizstab_hz, heizstab_ww, pumpe_zirku,
+                        meldung_heizung,
+                        betriebsart, wp_state,
+                        betr_std_verdichter, schaltungen_verdichter,
+                        betr_std_heizstab_fb, betr_std_heizstab_ww,
+                        message_fb, message_ww,
+                        vorlauf_soll, traum1
+                    ) VALUES (
+                        $1,
+                        $2,$3,$4,$5,$6,
+                        $7,$8,
+                        $9,$10,
+                        $11,$12,$13,
+                        $14,$15,$16,
+                        $17,$18,$19,
+                        $20,$21,$22,$23,
+                        $24,
+                        $25,$26,
+                        $27,$28,
+                        $29,$30,
+                        $31,$32,
+                        $33,$34
+                    )
                     """,
                     record.get("timestamp", datetime.now(timezone.utc)),
                     record.get("vorlauf"),
@@ -105,13 +131,32 @@ class PostgresStore:
                     record.get("heissgas"),
                     record.get("fluessigkeit"),
                     record.get("saugleitung"),
+                    record.get("phasenwaechter"),
+                    record.get("verdichter_freigabe"),
+                    record.get("nd_schalter1"),
+                    record.get("hd_schalter"),
+                    record.get("nd_schalter2"),
+                    record.get("pumpe_hzkr"),
+                    record.get("ladepumpe"),
                     record.get("verdichter"),
+                    record.get("mvr0407_fl1"),
+                    record.get("alarm"),
+                    record.get("mvr0407_nach2"),
                     record.get("ventil_ww"),
                     record.get("heizstab_hz"),
                     record.get("heizstab_ww"),
-                    record.get("alarm"),
+                    record.get("pumpe_zirku"),
+                    record.get("meldung_heizung"),
                     record.get("betriebsart"),
                     record.get("wp_state"),
+                    record.get("betr_std_verdichter"),
+                    record.get("schaltungen_verdichter"),
+                    record.get("betr_std_heizstab_fb"),
+                    record.get("betr_std_heizstab_ww"),
+                    record.get("message_fb"),
+                    record.get("message_ww"),
+                    record.get("vorlauf_soll"),
+                    record.get("traum1"),
                 )
             return True
         except Exception as exc:

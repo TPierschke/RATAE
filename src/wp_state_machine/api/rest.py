@@ -59,16 +59,41 @@ class AppState:
         self.wp_state: str = WPState.UNKNOWN
         self.dry_run: bool = True
         self.last_update: Optional[datetime] = None
+        self.last_modbus_update: Optional[datetime] = None
         self.postgres: Any = None  # PostgresStore
         self.mqtt_ok: bool = False
         self.telegram_ok: bool = False
         self.cmi_reachable: Optional[bool] = None
+        self.config: Any = None  # Config (gesetzt beim Startup)
+        self.startup_time: Optional[str] = None  # ISO8601 UTC, gesetzt in __main__.main()
         self._lock = asyncio.Lock()
 
     async def update_sensoren(self, sensoren: Sensoren) -> None:
+        """
+        Web-Scraper-Update. Modbus = Primaerquelle: solange Modbus frisch
+        liefert, werden seine Felder vom Scraper NICHT ueberschrieben.
+        Nur Felder die Modbus nicht (mehr) liefert werden gemerged.
+        """
+        from wp_state_machine.ingest.modbus_slave import (
+            MODBUS_FRESHNESS_SECONDS,
+            MODBUS_OWNED_FIELDS,
+        )
         async with self._lock:
-            self.sensoren = sensoren
-            self.wp_state = sensoren.derive_state()
+            modbus_fresh = (
+                self.last_modbus_update is not None
+                and (datetime.now(timezone.utc) - self.last_modbus_update).total_seconds()
+                < MODBUS_FRESHNESS_SECONDS
+            )
+            scraper_data = sensoren.model_dump(exclude_none=True)
+            if modbus_fresh:
+                for f in MODBUS_OWNED_FIELDS:
+                    scraper_data.pop(f, None)
+                # source/timestamp nicht ueberschreiben — Modbus haelt Hand drauf
+                scraper_data.pop("source", None)
+                scraper_data.pop("timestamp", None)
+            merged = self.sensoren.model_copy(update=scraper_data)
+            self.sensoren = merged
+            self.wp_state = merged.derive_state()
             self.last_update = datetime.now(timezone.utc)
 
     async def update_from_modbus(self, sensor_name: str, value: float) -> None:
@@ -94,13 +119,16 @@ class AppState:
             self.sensoren = updated
             self.wp_state = updated.derive_state()
             self.last_update = datetime.now(timezone.utc)
+            self.last_modbus_update = self.last_update
         log.debug("Modbus update: %s=%s -> WP_STATE=%s", field, value, self.wp_state)
 
     async def update_coil_from_modbus(self, coil_name: str, value: bool) -> None:
         """
         Aktualisiert einen einzelnen Digital-Wert aus Modbus-Coil.
 
-        Thread-safe via asyncio.Lock.
+        Thread-safe via asyncio.Lock. Triggert Edge-Aktionen direkt:
+          - alarm False->True: handle_alarm_edge (Verifikation + 4-fach-Telegram)
+          - verdichter False->True: handle_verdichter_edge (Mapping-Audit)
         """
         from wp_state_machine.ingest.modbus_slave import COIL_SENSOR_FIELD_MAP
         field = COIL_SENSOR_FIELD_MAP.get(coil_name)
@@ -108,13 +136,24 @@ class AppState:
             log.debug("Modbus coil_name=%s: kein Sensoren-Feld, ignoriere", coil_name)
             return
         async with self._lock:
+            prev_value = getattr(self.sensoren, field, None)
             updated = self.sensoren.model_copy(
                 update={field: value, "source": "modbus", "timestamp": datetime.now(timezone.utc)}
             )
             self.sensoren = updated
             self.wp_state = updated.derive_state()
             self.last_update = datetime.now(timezone.utc)
+            self.last_modbus_update = self.last_update
         log.debug("Modbus coil: %s=%s -> WP_STATE=%s", field, value, self.wp_state)
+
+        # Edge-Triggers: SOFORT, ohne Loop. Fire-and-forget asyncio.create_task.
+        if value is True and prev_value is not True and self.config is not None:
+            if field == "alarm":
+                from wp_state_machine.automation.coil_audit import handle_alarm_edge
+                asyncio.create_task(handle_alarm_edge(self, self.config))
+            elif field == "verdichter":
+                from wp_state_machine.automation.coil_audit import handle_verdichter_edge
+                asyncio.create_task(handle_verdichter_edge(self, self.config))
 
 
 # Singleton fuer den laufenden Server
@@ -146,6 +185,18 @@ def create_app(state: Optional[AppState] = None) -> FastAPI:
     # Statische Web-Assets
     if _STATIC_DIR.exists():
         app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
+
+    @app.get("/api/version")
+    async def api_version() -> dict[str, Any]:
+        """Version-Info fuer Frontend-Footer und Debugging.
+
+        backend = Hardcoded Backend-Version-String.
+        build   = Server-Startup-Zeit (ISO8601 UTC). Wechselt mit jedem Restart.
+        """
+        return {
+            "backend": "0.1.4",
+            "build": _state.startup_time,
+        }
 
     @app.get("/")
     async def root():
@@ -211,6 +262,49 @@ def create_app(state: Optional[AppState] = None) -> FastAPI:
             "sensoren": _state.sensoren.model_dump(),
         }
 
+    @app.get("/api/reset")
+    async def api_reset() -> Response:
+        """
+        Einmal-Aufruf zum Aufraeumen alter PWA/Service-Worker-Caches im Browser.
+        Schickt 'Clear-Site-Data', danach ist alles weg, Browser laedt frisch.
+        """
+        from fastapi.responses import HTMLResponse
+        body = """<!doctype html><html lang="de"><head><meta charset="utf-8">
+<title>Reset</title>
+<meta http-equiv="refresh" content="2;url=/">
+<style>body{font-family:-apple-system,sans-serif;background:#0f172a;color:#e2e8f0;
+padding:2rem;text-align:center}a{color:#38bdf8}</style></head>
+<body><h1>Cache zurueckgesetzt</h1>
+<p>Service-Worker und Caches werden geloescht. Weiterleitung in 2 Sekunden ...</p>
+<p>Falls nicht: <a href="/">zur Startseite</a></p>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister()));
+}
+if (window.caches) caches.keys().then(ks => ks.forEach(k => caches.delete(k)));
+</script>
+</body></html>"""
+        return HTMLResponse(
+            content=body,
+            headers={
+                "Clear-Site-Data": '"cache", "storage"',
+                "Cache-Control": "no-store",
+            },
+        )
+
+    @app.post("/scrape/run")
+    async def scrape_run() -> dict[str, Any]:
+        """Manueller Web-Scrape (UI-Button). Holt eine Momentaufnahme von der CMI-Web-UI."""
+        if _state.config is None:
+            raise HTTPException(status_code=503, detail="Config nicht initialisiert")
+        from wp_state_machine.__main__ import scrape_once
+        try:
+            merged = await scrape_once(_state.config, _state)
+            return {"ok": True, "values": merged}
+        except Exception as exc:
+            log.error("Scrape-Endpoint-Fehler: %s", exc)
+            raise HTTPException(status_code=502, detail=f"Scrape fehlgeschlagen: {exc}")
+
     @app.get("/telemetry")
     async def get_telemetry() -> dict[str, Any]:
         """Aktuelle Telemetrie (Sensor-Snapshot)."""
@@ -262,116 +356,87 @@ def create_app(state: Optional[AppState] = None) -> FastAPI:
     # Schreib-Endpunkte (alle DRY_RUN gesichert)
     # ---------------------------------------------------------------------------
 
-    @app.post("/functions/F1/betriebsart", response_model=WriteResult)
-    async def set_betriebsart(req: SetBetriebsartRequest) -> WriteResult:
+    async def _execute_write(address: str, value: int | float, label: str) -> WriteResult:
         """
-        Setzt Betriebsart F:1 FBHEIZ.
-        Im DRY_RUN: Whitelist-Check + Audit-Log, kein echter CMI-Call.
+        Generischer CMI-Schreib-Pfad: Whitelist → DRY/LIVE → Audit-Insert (ein Eintrag pro Versuch).
         """
-        safety_result = check_write("3E9001301C", req.betriebsart)
+        safety_result = check_write(address, value)
 
-        if _state.postgres:
-            await _state.postgres.insert_function_audit(
-                address="3E9001301C",
-                value=float(req.betriebsart),
-                whitelist_ok=safety_result.allowed,
-                dry_run=_state.dry_run,
-                cmi_called=False,
-                cmi_response=None,
-                success=safety_result.allowed and _state.dry_run,
-                reason=safety_result.reason,
-                caller="api/rest",
-            )
+        async def _audit(cmi_called: bool, response_text: Optional[str], success: bool, reason: str) -> None:
+            if _state.postgres and _state.postgres.is_connected:
+                await _state.postgres.insert_function_audit(
+                    address=address,
+                    value=float(value),
+                    whitelist_ok=safety_result.allowed,
+                    dry_run=_state.dry_run,
+                    cmi_called=cmi_called,
+                    cmi_response=response_text,
+                    success=success,
+                    reason=reason,
+                    caller="api/rest",
+                )
 
         if not safety_result.allowed:
+            await _audit(cmi_called=False, response_text=None, success=False, reason=safety_result.reason)
             return WriteResult(
-                success=False,
-                dry_run=_state.dry_run,
-                address="3E9001301C",
-                value=req.betriebsart,
-                reason=safety_result.reason,
+                success=False, dry_run=_state.dry_run,
+                address=address, value=value, reason=safety_result.reason,
             )
 
         if _state.dry_run:
-            log.info("DRY_RUN: set_betriebsart(%d) — kein echter CMI-Call", req.betriebsart)
+            log.info("DRY_RUN: %s addr=%s value=%s", label, address, value)
+            reason = f"DRY_RUN: {label} ({value}) waere geschrieben worden"
+            await _audit(cmi_called=False, response_text=None, success=True, reason=reason)
             return WriteResult(
-                success=True,
-                dry_run=True,
-                address="3E9001301C",
-                value=req.betriebsart,
-                reason=f"DRY_RUN: Betriebsart {req.betriebsart} waere gesetzt worden",
+                success=True, dry_run=True, address=address, value=value, reason=reason,
             )
 
-        # LIVE (nur wenn DRY_RUN=False explizit gesetzt)
-        raise HTTPException(status_code=503, detail="LIVE-Modus noch nicht implementiert — DRY_RUN=True setzen")
+        # LIVE
+        if _state.config is None:
+            raise HTTPException(status_code=503, detail="Config nicht initialisiert")
+        from wp_state_machine.ingest.cmi_writer import write_to_cmi
+        result = await write_to_cmi(_state.config, address, value)
+        await _audit(
+            cmi_called=True,
+            response_text=result.response_text,
+            success=result.success,
+            reason=result.reason,
+        )
+        log.info("LIVE %s addr=%s value=%s -> %s", label, address, value, result.reason)
+        return WriteResult(
+            success=result.success, dry_run=False,
+            address=address, value=value, reason=result.reason,
+        )
+
+    @app.post("/functions/F1/betriebsart", response_model=WriteResult)
+    async def set_betriebsart(req: SetBetriebsartRequest) -> WriteResult:
+        """Setzt Betriebsart F:1 FBHEIZ (1..7)."""
+        return await _execute_write("3E9001301C", req.betriebsart, "Betriebsart")
 
     @app.post("/functions/F1/normalsoll", response_model=WriteResult)
     async def set_normalsoll(req: SetNormalsollRequest) -> WriteResult:
-        """Setzt Normal-Soll-Temperatur F:1 FBHEIZ."""
-        safety_result = check_write("3EB001300C", req.temp)
+        """Setzt Normal-Soll-Temperatur F:1 FBHEIZ (10..30 °C)."""
+        return await _execute_write("3EB001300C", req.temp, "Normalsoll")
 
-        if not safety_result.allowed:
-            return WriteResult(
-                success=False,
-                dry_run=_state.dry_run,
-                address="3EB001300C",
-                value=req.temp,
-                reason=safety_result.reason,
-            )
+    @app.post("/functions/F1/absenksoll", response_model=WriteResult)
+    async def set_absenksoll(req: SetAbsenksollRequest) -> WriteResult:
+        """Setzt Absenk-Soll-Temperatur F:1 FBHEIZ (5..25 °C)."""
+        return await _execute_write("3EB001300D", req.temp, "Absenksoll")
 
-        if _state.dry_run:
-            return WriteResult(
-                success=True,
-                dry_run=True,
-                address="3EB001300C",
-                value=req.temp,
-                reason=f"DRY_RUN: Normal-Soll {req.temp}°C waere gesetzt worden",
-            )
-
-        raise HTTPException(status_code=503, detail="LIVE nicht implementiert")
+    @app.post("/functions/F9/wwsoll", response_model=WriteResult)
+    async def set_wwsoll(req: SetNormalsollRequest) -> WriteResult:
+        """Setzt WW-Soll-Temperatur F:9 (30..70 °C)."""
+        return await _execute_write("3EB0023118", req.temp, "WW-Soll")
 
     @app.post("/functions/F9/start", response_model=WriteResult)
     async def start_ww_boost() -> WriteResult:
-        """
-        Startet WW-Bereitung via F:9 WW_ANF.2.
-        Verdichter-WW-Boost mit eingebauter Heizstab-Eskalation.
-        Kein manueller Stop noetig — WP stoppt bei 70°C selbst.
-        """
-        safety_result = check_write("3E80093125", 1)
+        """Startet WW-Boost / Legionellenschutz F:9 WW_ANF.2."""
+        return await _execute_write("3E80093125", 1, "WW-Boost START")
 
-        if _state.postgres:
-            await _state.postgres.insert_function_audit(
-                address="3E80093125",
-                value=1.0,
-                whitelist_ok=safety_result.allowed,
-                dry_run=_state.dry_run,
-                cmi_called=False,
-                cmi_response=None,
-                success=safety_result.allowed and _state.dry_run,
-                reason=safety_result.reason,
-                caller="api/rest",
-            )
-
-        if not safety_result.allowed:
-            return WriteResult(
-                success=False,
-                dry_run=_state.dry_run,
-                address="3E80093125",
-                value=1,
-                reason=safety_result.reason,
-            )
-
-        if _state.dry_run:
-            log.info("DRY_RUN: WW-Boost starten — kein echter CMI-Call")
-            return WriteResult(
-                success=True,
-                dry_run=True,
-                address="3E80093125",
-                value=1,
-                reason="DRY_RUN: WW-Boost waere gestartet worden (F:9 WW_ANF.2 STARTEN=1)",
-            )
-
-        raise HTTPException(status_code=503, detail="LIVE nicht implementiert")
+    @app.post("/functions/F9/stop", response_model=WriteResult)
+    async def stop_ww_boost() -> WriteResult:
+        """Stoppt WW-Boost manuell F:9 WW_ANF.2."""
+        return await _execute_write("3E80093126", 1, "WW-Boost STOP")
 
     # ---------------------------------------------------------------------------
     # Server-Sent-Events fuer Live-Updates
@@ -380,29 +445,38 @@ def create_app(state: Optional[AppState] = None) -> FastAPI:
     @app.get("/stream")
     async def stream_events() -> StreamingResponse:
         """
-        Server-Sent-Events: sendet alle 3s aktuellen State.
-        Clients: EventSource('http://.../stream')
+        Server-Sent-Events: sendet sofort beim Connect ein Event,
+        danach alle 3s State + alle 6 Ticks (~18s) ein Heartbeat-Comment.
+        iOS WebKit/Brave braucht den Initial-Push, sonst onerror.
         """
 
         async def event_generator() -> AsyncGenerator[str, None]:
+            # SOFORT initialer Comment + retry-Hint (iOS WebKit-Fix)
+            yield ": connected\n\nretry: 5000\n\n"
+
+            tick = 0
             while True:
                 data = {
                     "state": _state.wp_state,
                     "dry_run": _state.dry_run,
                     "ts": datetime.now(timezone.utc).isoformat(),
-                    "vorlauf": _state.sensoren.vorlauf,
-                    "aussen": _state.sensoren.aussen,
-                    "warmwasser": _state.sensoren.warmwasser,
-                    "verdichter": _state.sensoren.verdichter,
-                    "alarm": _state.sensoren.alarm,
+                    "sensoren": _state.sensoren.model_dump(mode="json"),
                 }
                 yield f"data: {json.dumps(data)}\n\n"
+                # Heartbeat-Comment alle 6 Ticks gegen iOS-Idle-Drop
+                tick += 1
+                if tick % 6 == 0:
+                    yield ": ping\n\n"
                 await asyncio.sleep(3)
 
         return StreamingResponse(
             event_generator(),
-            media_type="text/event-stream",
-            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+            media_type="text/event-stream; charset=utf-8",
+            headers={
+                "Cache-Control": "no-cache, no-transform",
+                "X-Accel-Buffering": "no",
+                "Connection": "keep-alive",
+            },
         )
 
     return app

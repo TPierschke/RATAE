@@ -1,6 +1,19 @@
 # Secrets + Config
 .env
+*.env
+*.env.bak
 config.toml
+
+# Workflow backups containing tokens
+docs/n8n-workflows-backup-*/
+docs/n8n-zugang-recherche-*.md
+
+# CMI configuration backups (may contain credentials)
+docs/cmi-probe/
+
+# tools output (may contain creds)
+tools/cmi_e_outputs.json
+tools/cmi_bulk_result.json
 
 # Python
 __pycache__/

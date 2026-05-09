@@ -18,7 +18,7 @@ from typing import Any
 log = logging.getLogger(__name__)
 
 # Standardpfade
-_PROJECT_ROOT = Path(__file__).resolve().parents[3]  # src/../..
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]  # src/../..
 _DEFAULT_ENV = _PROJECT_ROOT / ".env"
 _DEFAULT_CONFIG = _PROJECT_ROOT / "config.toml"
 
@@ -121,7 +121,7 @@ class Config:
 
         # Postgres
         self.postgres_url: str = _get(
-            "POSTGRES_URL",
+            "WPSM_POSTGRES_URL",
             "postgresql://wp_sm:changeme@192.168.178.10:5432/wp_state_machine",
         )
 

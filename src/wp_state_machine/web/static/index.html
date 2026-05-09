@@ -10,7 +10,7 @@
   <title>WP State Machine</title>
   <link rel="manifest" href="/static/manifest.json">
   <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
-  <link rel="stylesheet" href="/static/app.css">
+  <link rel="stylesheet" href="/static/app.css?v=20260506-11">
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -18,8 +18,8 @@
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <!-- App JS -->
-  <script src="/static/app.js"></script>
+  <!-- App JS — Version per Query-Param fuer Cache-Bust -->
+  <script src="/static/app.js?v=20260506-11"></script>
 </head>
 <body class="min-h-screen" x-data="wpApp" x-init="init()">
 
@@ -32,7 +32,11 @@
   <header class="px-4 pt-4 pb-2 flex items-center justify-between">
     <div>
       <h1 class="text-lg font-bold text-white">WP State Machine</h1>
-      <p class="text-xs text-slate-400">CMI 192.168.178.45 · v0.1</p>
+      <p class="text-xs text-slate-400">
+        CMI 192.168.178.45 · v0.1 ·
+        <span x-text="'Quelle: ' + source"
+              :class="source === 'modbus' ? 'text-green-400' : (source === 'web_scraper' ? 'text-amber-400' : 'text-slate-500')"></span>
+      </p>
     </div>
     <div class="flex items-center gap-2">
       <span class="status-dot conn-indicator" :class="connected ? 'on' : 'unknown'"></span>
@@ -40,125 +44,217 @@
     </div>
   </header>
 
-  <!-- Haupt-State Card -->
-  <div class="px-4 mb-4">
-    <div class="state-card p-4" :class="stateColor">
-      <div class="flex items-center gap-3">
-        <span class="text-3xl" x-text="stateIcon"></span>
+  <!-- Tab-Navigation -->
+  <nav class="px-4 mb-4">
+    <div class="tab-bar">
+      <button class="tab-btn" :class="activeTab === 'dashboard' ? 'tab-active' : ''"
+              @click="activeTab = 'dashboard'">Dashboard</button>
+      <button class="tab-btn" :class="activeTab === 'all' ? 'tab-active' : ''"
+              @click="activeTab = 'all'">Alle Werte</button>
+    </div>
+  </nav>
+
+  <!-- ============================================================ -->
+  <!-- TAB 1: DASHBOARD                                              -->
+  <!-- ============================================================ -->
+  <div x-show="activeTab === 'dashboard'" x-transition>
+
+    <!-- Haupt-State Card -->
+    <div class="px-4 mb-4">
+      <div class="state-card p-4" :class="stateColor">
+        <div class="flex items-center gap-3">
+          <span class="text-3xl" x-text="stateIcon"></span>
+          <div>
+            <div class="text-xl font-bold text-white" x-text="stateLabel"></div>
+            <div x-show="alarm" class="text-red-400 text-sm font-semibold">ALARM AKTIV</div>
+          </div>
+          <div class="ml-auto text-right flex flex-col items-center">
+            <span class="status-dot status-dot-lg" :class="verdichter ? 'on' : 'off'"></span>
+            <div class="text-xs text-slate-400 mt-1">Verdichter</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Temperatur-Grid: Aussen+WW oben, Vorlauf+Ruecklauf unten -->
+    <div class="px-4 grid grid-cols-2 gap-3 mb-4">
+      <div class="state-card p-3">
+        <div class="temp-label mb-1">Aussentemperatur</div>
+        <div class="temp-value text-slate-300" x-text="formatTemp(aussen)"></div>
+        <div class="sparkline-wrap mt-1"><canvas id="chart-aussen"></canvas></div>
+      </div>
+      <div class="state-card p-3">
+        <div class="temp-label mb-1">Warmwasser</div>
+        <div class="temp-value text-green-400" x-text="formatTemp(warmwasser)"></div>
+        <div class="sparkline-wrap mt-1"><canvas id="chart-ww"></canvas></div>
+      </div>
+      <div class="state-card p-3">
+        <div class="temp-label mb-1">Vorlauf (Puffer)</div>
+        <div class="temp-value text-sky-400" x-text="formatTemp(vorlauf)"></div>
+        <div class="sparkline-wrap mt-1"><canvas id="chart-vorlauf"></canvas></div>
+      </div>
+      <div class="state-card p-3">
+        <div class="temp-label mb-1">Ruecklauf FBH</div>
+        <div class="temp-value text-amber-400" x-text="formatTemp(ruecklauf)"></div>
+        <div class="sparkline-wrap mt-1"><canvas id="chart-ruecklauf"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Status-Indikatoren -->
+    <div class="px-4 mb-4">
+      <div class="state-card p-3">
+        <div class="text-xs text-slate-400 uppercase tracking-wider mb-2">Ausgaenge</div>
+        <div class="grid grid-cols-2 gap-2 text-sm">
+          <div class="flex items-center gap-2">
+            <span class="status-dot" :class="verdichter ? 'on' : 'off'"></span>Verdichter
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="status-dot" :class="ventilWW ? 'on' : 'off'"></span>Ventil WW
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="status-dot" :class="heizstabHz ? 'alarm' : 'off'"></span>
+            <span :class="heizstabHz ? 'text-red-400' : ''">Heizstab HZ</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="status-dot" :class="heizstabWW ? 'alarm' : 'off'"></span>
+            <span :class="heizstabWW ? 'text-red-400' : ''">Heizstab WW</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="status-dot" :class="alarm ? 'alarm' : 'on'"></span>
+            <span :class="alarm ? 'text-red-400 font-semibold' : ''">Alarm A5</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Steuerung -->
+    <div class="px-4 mb-6">
+      <div class="state-card p-4">
+        <div class="text-xs text-slate-400 uppercase tracking-wider mb-3">Steuerung</div>
+
+        <div class="mb-4">
+          <label class="text-sm text-slate-300 block mb-1">Betriebsart F:1</label>
+          <div class="flex gap-2">
+            <select x-model="selectedBetriebsart"
+                    class="flex-1 bg-slate-800 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm">
+              <template x-for="(name, val) in betriebsartNames" :key="val">
+                <option :value="val" x-text="val + ' — ' + name"></option>
+              </template>
+            </select>
+            <button @click="confirmSetBetriebsart()" class="btn-primary text-sm px-3">Setzen</button>
+          </div>
+        </div>
+
         <div>
-          <div class="text-xl font-bold text-white" x-text="stateLabel"></div>
-          <div x-show="alarm" class="text-red-400 text-sm font-semibold">ALARM AKTIV</div>
+          <label class="text-sm text-slate-300 block mb-1">Legionellenschutz (F:9 WW_ANF.2)</label>
+          <button @click="confirmStartWW()" class="btn-primary w-full">Legionellenschutz starten</button>
+          <p class="text-xs text-slate-500 mt-1">
+            Soll 70 &deg;C, Verdichter-Vorrang. Auto-Stop bei Erreichen. Plan: Sa 02-04 Uhr.
+          </p>
         </div>
-        <div class="ml-auto text-right">
-          <span class="status-dot" :class="verdichter ? 'on' : 'off'"></span>
-          <div class="text-xs text-slate-400">Verdichter</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Temperatur-Grid -->
-  <div class="px-4 grid grid-cols-2 gap-3 mb-4">
-
-    <!-- Vorlauf -->
-    <div class="state-card p-3">
-      <div class="temp-label mb-1">Vorlauf (Puffer)</div>
-      <div class="temp-value text-sky-400" x-text="formatTemp(vorlauf)"></div>
-      <div class="sparkline-wrap mt-1">
-        <canvas id="chart-vorlauf"></canvas>
-      </div>
-    </div>
-
-    <!-- Aussen -->
-    <div class="state-card p-3">
-      <div class="temp-label mb-1">Aussentemperatur</div>
-      <div class="temp-value text-slate-300" x-text="formatTemp(aussen)"></div>
-      <div class="sparkline-wrap mt-1">
-        <canvas id="chart-aussen"></canvas>
-      </div>
-    </div>
-
-    <!-- WW -->
-    <div class="state-card p-3">
-      <div class="temp-label mb-1">Warmwasser</div>
-      <div class="temp-value text-green-400" x-text="formatTemp(warmwasser)"></div>
-      <div class="sparkline-wrap mt-1">
-        <canvas id="chart-ww"></canvas>
-      </div>
-    </div>
-
-    <!-- Ruecklauf -->
-    <div class="state-card p-3">
-      <div class="temp-label mb-1">Ruecklauf FBH</div>
-      <div class="temp-value text-amber-400" x-text="formatTemp(ruecklauf)"></div>
-      <div class="h-12 flex items-center justify-center text-slate-600 text-xs">
-        kein Sparkline
       </div>
     </div>
 
   </div>
 
-  <!-- Status-Indikatoren -->
-  <div class="px-4 mb-4">
-    <div class="state-card p-3">
-      <div class="text-xs text-slate-400 uppercase tracking-wider mb-2">Ausgaenge</div>
-      <div class="grid grid-cols-2 gap-2 text-sm">
-        <div class="flex items-center gap-2">
-          <span class="status-dot" :class="verdichter ? 'on' : 'off'"></span>
-          Verdichter
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="status-dot" :class="ventilWW ? 'on' : 'off'"></span>
-          Ventil WW
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="status-dot" :class="heizstabHz ? 'alarm' : 'off'"></span>
-          <span :class="heizstabHz ? 'text-red-400' : ''">Heizstab HZ</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="status-dot" :class="heizstabWW ? 'alarm' : 'off'"></span>
-          <span :class="heizstabWW ? 'text-red-400' : ''">Heizstab WW</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="status-dot" :class="alarm ? 'alarm' : 'off'"></span>
-          <span :class="alarm ? 'text-red-400 font-semibold' : ''">Alarm A5</span>
-        </div>
-      </div>
-    </div>
-  </div>
+  <!-- ============================================================ -->
+  <!-- TAB 2: ALLE WERTE                                             -->
+  <!-- ============================================================ -->
+  <div x-show="activeTab === 'all'" x-transition>
 
-  <!-- Steuerung -->
-  <div class="px-4 mb-6">
-    <div class="state-card p-4">
-      <div class="text-xs text-slate-400 uppercase tracking-wider mb-3">Steuerung</div>
-
-      <!-- Betriebsart -->
-      <div class="mb-4">
-        <label class="text-sm text-slate-300 block mb-1">Betriebsart F:1</label>
-        <div class="flex gap-2">
-          <select x-model="selectedBetriebsart"
-                  class="flex-1 bg-slate-800 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm">
-            <template x-for="(name, val) in betriebsartNames" :key="val">
-              <option :value="val" x-text="val + ' — ' + name"></option>
-            </template>
-          </select>
-          <button @click="confirmSetBetriebsart()" class="btn-primary text-sm px-3">
-            Setzen
-          </button>
-        </div>
-      </div>
-
-      <!-- WW-Boost -->
-      <div>
-        <label class="text-sm text-slate-300 block mb-1">WW-Bereitung (F:9)</label>
-        <button @click="confirmStartWW()" class="btn-primary w-full">
-          WW-Boost starten
+    <!-- Manueller Webcrawler-Trigger (auf Seite 2) -->
+    <div class="px-4 mb-4">
+      <div class="state-card p-4">
+        <div class="text-xs text-slate-400 uppercase tracking-wider mb-3">Manueller Abruf</div>
+        <button @click="manualScrape()" :disabled="scraping"
+                class="btn-primary w-full" :class="scraping ? 'opacity-60' : ''">
+          <span x-show="!scraping">Webcrawler jetzt holen</span>
+          <span x-show="scraping">Hole Werte vom CMI ...</span>
         </button>
-        <p class="text-xs text-slate-500 mt-1">
-          Verdichter-WW-Boost. Auto-Stop bei 70°C. Heizstab-Eskalation eingebaut.
+        <p class="text-xs text-slate-500 mt-2">
+          Holt eine Momentaufnahme der CMI-Web-UI. Modbus-Werte bleiben Vorrang.
         </p>
       </div>
     </div>
+
+    <!-- Detail-Ansicht: alle ausgelesenen Werte -->
+    <div class="px-4 mb-6">
+      <div class="state-card p-4">
+        <div class="text-xs text-slate-400 uppercase tracking-wider mb-3">Alle Sensor-Werte</div>
+        <div class="space-y-4 text-sm">
+
+          <div>
+            <div class="text-xs text-slate-500 uppercase mb-2 border-b border-slate-700 pb-1">Temperaturen</div>
+            <div class="grid grid-cols-2 gap-x-4 gap-y-1">
+              <div class="flex justify-between"><span class="text-slate-400">Aussen S1</span>            <span class="font-mono text-slate-200" x-text="formatTemp(aussen)"></span></div>
+              <div class="flex justify-between"><span class="text-slate-400">Vorlauf (Puffer) S2</span>  <span class="font-mono text-slate-200" x-text="formatTemp(vorlauf)"></span></div>
+              <div class="flex justify-between"><span class="text-slate-400">Ruecklauf FBH S3</span>     <span class="font-mono text-slate-200" x-text="formatTemp(ruecklauf)"></span></div>
+              <div class="flex justify-between"><span class="text-slate-400">Warmwasser S4</span>        <span class="font-mono text-slate-200" x-text="formatTemp(warmwasser)"></span></div>
+              <div class="flex justify-between"><span class="text-slate-400">Heissgas S7</span>          <span class="font-mono text-slate-200" x-text="formatTemp(heissgas)"></span></div>
+              <div class="flex justify-between"><span class="text-slate-400">Fluessigkeit S8</span>      <span class="font-mono text-slate-200" x-text="formatTemp(fluessigkeit)"></span></div>
+              <div class="flex justify-between"><span class="text-slate-400">Saugleitung S9</span>       <span class="font-mono text-slate-200" x-text="formatTemp(saugleitung)"></span></div>
+              <div class="flex justify-between"><span class="text-slate-400">Raum-Soll eff.</span>       <span class="font-mono text-slate-200" x-text="formatTemp(traum1)"></span></div>
+              <div class="flex justify-between"><span class="text-slate-400">Vorlauf-Soll</span>         <span class="font-mono text-slate-200" x-text="formatTemp(vorlaufSoll)"></span></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="text-xs text-slate-500 uppercase mb-2 border-b border-slate-700 pb-1">Eingaenge / Schalter</div>
+            <div class="grid grid-cols-2 gap-x-4 gap-y-1">
+              <div class="flex items-center gap-2"><span class="status-dot" :class="phasenwaechter ? 'on' : 'off'"></span>Phasenwaechter S10</div>
+              <div class="flex items-center gap-2"><span class="status-dot" :class="verdichterFreigabe ? 'on' : 'off'"></span>Verd-Freigabe S11</div>
+              <div class="flex items-center gap-2"><span class="status-dot" :class="ndSchalter1 ? 'on' : 'off'"></span>ND-Schalter 1 S12</div>
+              <div class="flex items-center gap-2"><span class="status-dot" :class="hdSchalter ? 'on' : 'off'"></span>HD-Schalter S13</div>
+              <div class="flex items-center gap-2"><span class="status-dot" :class="ndSchalter2 ? 'on' : 'off'"></span>ND-Schalter 2 S14</div>
+            </div>
+          </div>
+
+          <div>
+            <div class="text-xs text-slate-500 uppercase mb-2 border-b border-slate-700 pb-1">Ausgaenge / Aktoren</div>
+            <div class="grid grid-cols-2 gap-x-4 gap-y-1">
+              <div class="flex items-center gap-2"><span class="status-dot" :class="pumpeHzkr ? 'on' : 'off'"></span>FBH-Pumpe A1</div>
+              <div class="flex items-center gap-2"><span class="status-dot" :class="ladepumpe ? 'on' : 'off'"></span>Ladepumpe A2</div>
+              <div class="flex items-center gap-2"><span class="status-dot" :class="verdichter ? 'on' : 'off'"></span>Verdichter A3</div>
+              <div class="flex items-center gap-2"><span class="status-dot" :class="alarm ? 'alarm' : 'on'"></span>Alarm A5</div>
+              <div class="flex items-center gap-2"><span class="status-dot" :class="ventilWW ? 'on' : 'off'"></span>Ventil WW A7</div>
+              <div class="flex items-center gap-2"><span class="status-dot" :class="heizstabHz ? 'alarm' : 'off'"></span>Heizstab HZ A8</div>
+              <div class="flex items-center gap-2"><span class="status-dot" :class="heizstabWW ? 'alarm' : 'off'"></span>Heizstab WW A9</div>
+              <div class="flex items-center gap-2"><span class="status-dot" :class="pumpeZirku ? 'on' : 'off'"></span>Zirku-Pumpe A10</div>
+            </div>
+          </div>
+
+          <div>
+            <div class="text-xs text-slate-500 uppercase mb-2 border-b border-slate-700 pb-1">Zaehler</div>
+            <div class="grid grid-cols-2 gap-x-4 gap-y-1">
+              <div class="flex justify-between"><span class="text-slate-400">Betriebsstd. Verdichter</span>   <span class="font-mono text-slate-200" x-text="betrStdVerdichter ?? '---'"></span></div>
+              <div class="flex justify-between"><span class="text-slate-400">Schaltungen Verdichter</span>    <span class="font-mono text-slate-200" x-text="schaltungenVerdichter ?? '---'"></span></div>
+              <div class="flex justify-between"><span class="text-slate-400">Betriebsstd. Heizstab FB</span>  <span class="font-mono text-slate-200" x-text="betrStdHeizstabFb ?? '---'"></span></div>
+              <div class="flex justify-between"><span class="text-slate-400">Betriebsstd. Heizstab WW</span>  <span class="font-mono text-slate-200" x-text="betrStdHeizstabWw ?? '---'"></span></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="text-xs text-slate-500 uppercase mb-2 border-b border-slate-700 pb-1">Status-Codes</div>
+            <div class="grid grid-cols-2 gap-x-4 gap-y-1">
+              <div class="flex justify-between"><span class="text-slate-400">Message Heizung</span>   <span class="font-mono text-slate-200" x-text="messageFb ?? '---'"></span></div>
+              <div class="flex justify-between"><span class="text-slate-400">Message WW</span>        <span class="font-mono text-slate-200" x-text="messageWw ?? '---'"></span></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="text-xs text-slate-500 uppercase mb-2 border-b border-slate-700 pb-1">Funktionen</div>
+            <div class="grid grid-cols-2 gap-x-4 gap-y-1">
+              <div class="flex justify-between col-span-2">
+                <span class="text-slate-400">Betriebsart F:1</span>
+                <span class="font-mono text-slate-200" x-text="betriebsart ? (betriebsart + ' — ' + (betriebsartNames[betriebsart] || '?')) : '---'"></span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- Status Message -->
@@ -190,12 +286,24 @@
     </div>
   </div>
 
-  <!-- PWA Service Worker -->
+  <!-- Footer: Frontend- und Backend-Version sichtbar machen -->
+  <footer class="px-4 py-3 text-center text-xs text-slate-500 border-t border-slate-800 mt-6">
+    FE: <span x-text="frontendVersion"></span>
+    &nbsp;·&nbsp;
+    BE: <span x-text="backendVersion"></span>
+    &nbsp;·&nbsp;
+    SSE: <span :class="connected ? 'text-green-400' : 'text-amber-400'" x-text="connected ? 'verbunden' : 'getrennt'"></span>
+  </footer>
+
+  <!-- Service-Worker abklemmen: alten SW unregistrieren + alle Caches loeschen. -->
   <script>
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/static/service-worker.js').catch(console.error);
+      navigator.serviceWorker.getRegistrations().then((regs) => {
+        regs.forEach((r) => r.unregister());
       });
+      if (window.caches && caches.keys) {
+        caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
+      }
     }
   </script>
 

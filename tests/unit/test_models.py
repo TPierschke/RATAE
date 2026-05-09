@@ -54,17 +54,19 @@ class TestSensoren:
         assert s.aussen is None
         assert s.verdichter is None
 
-    def test_pump_percent_clamped(self):
-        s = Sensoren(pumpe_hzkr=150.0)
-        assert s.pumpe_hzkr == 100.0
+    def test_pumpe_hzkr_bool_on(self):
+        """FBH-Pumpe ist seit v0.1.5 Zustand (an/aus), kein Prozent."""
+        s = Sensoren(pumpe_hzkr=True)
+        assert s.pumpe_hzkr is True
 
-    def test_pump_percent_clamped_negative(self):
-        s = Sensoren(pumpe_hzkr=-5.0)
-        assert s.pumpe_hzkr == 0.0
+    def test_ladepumpe_bool_off(self):
+        s = Sensoren(ladepumpe=False)
+        assert s.ladepumpe is False
 
-    def test_pump_percent_valid(self):
-        s = Sensoren(pumpe_hzkr=75.0)
-        assert s.pumpe_hzkr == 75.0
+    def test_pumpen_default_none(self):
+        s = Sensoren()
+        assert s.pumpe_hzkr is None
+        assert s.ladepumpe is None
 
     def test_derive_state_unknown_without_data(self):
         s = Sensoren()

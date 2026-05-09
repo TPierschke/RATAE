@@ -228,10 +228,13 @@ class TestUnknownAddresses:
         r = check_write("", 1)
         assert r.allowed is False
 
-    def test_ww_soll_not_whitelisted(self):
-        """WW-Soll ist Phase-1 nicht in der Whitelist (nur F:1 und F:9-Start)."""
+    def test_ww_soll_now_whitelisted(self):
+        """WW-Soll ist seit v0.1.5 whitelisted (30..70 °C, F:9)."""
         r = check_write("3EB0023118", 50)
-        assert r.allowed is False
+        assert r.allowed is True
+        # Out-of-range bleibt blockiert
+        assert check_write("3EB0023118", 25).allowed is False
+        assert check_write("3EB0023118", 80).allowed is False
 
 
 # ---------------------------------------------------------------------------
@@ -293,9 +296,9 @@ class TestConstants:
     def test_forbidden_prefixes_contains_3e91(self):
         assert "3E91" in FORBIDDEN_PREFIXES
 
-    def test_whitelist_has_exactly_four_entries(self):
-        """Phase 1 hat genau 4 whitelisted Adressen."""
-        assert len(WHITELIST) == 4
+    def test_whitelist_has_six_entries(self):
+        """Phase 1 (seit v0.1.5): 6 Adressen — F:1 (4) + F:9 (Start, Stop, Soll)."""
+        assert len(WHITELIST) == 6
 
     def test_whitelist_contains_betriebsart(self):
         assert "3E9001301C" in WHITELIST

@@ -11,22 +11,49 @@
 -- ---------------------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS telemetry (
-    id          BIGSERIAL,
-    ts          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    vorlauf     REAL,
-    ruecklauf   REAL,
-    warmwasser  REAL,
-    aussen      REAL,
-    heissgas    REAL,
-    fluessigkeit REAL,
-    saugleitung REAL,
-    verdichter  BOOLEAN,
-    ventil_ww   BOOLEAN,
-    heizstab_hz BOOLEAN,
-    heizstab_ww BOOLEAN,
-    alarm       BOOLEAN,
-    betriebsart SMALLINT,
-    wp_state    VARCHAR(20),
+    id                     BIGSERIAL,
+    ts                     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    -- Analog inputs (temperatures)
+    vorlauf                REAL,
+    ruecklauf              REAL,
+    warmwasser             REAL,
+    aussen                 REAL,
+    heissgas               REAL,
+    fluessigkeit           REAL,
+    saugleitung            REAL,
+    -- Digital inputs
+    phasenwaechter         BOOLEAN,
+    verdichter_freigabe    BOOLEAN,
+    nd_schalter1           BOOLEAN,
+    hd_schalter            BOOLEAN,
+    nd_schalter2           BOOLEAN,
+    -- Digital outputs
+    pumpe_hzkr             BOOLEAN,
+    ladepumpe              BOOLEAN,
+    verdichter             BOOLEAN,
+    mvr0407_fl1            BOOLEAN,
+    alarm                  BOOLEAN,
+    mvr0407_nach2          BOOLEAN,
+    ventil_ww              BOOLEAN,
+    heizstab_hz            BOOLEAN,
+    heizstab_ww            BOOLEAN,
+    pumpe_zirku            BOOLEAN,
+    -- Messages
+    meldung_heizung        BOOLEAN,
+    -- Operation mode + state
+    betriebsart            SMALLINT,
+    wp_state               VARCHAR(20),
+    -- Counters (uint32)
+    betr_std_verdichter    BIGINT,
+    schaltungen_verdichter BIGINT,
+    betr_std_heizstab_fb   BIGINT,
+    betr_std_heizstab_ww   BIGINT,
+    -- Status codes (uint16)
+    message_fb             INTEGER,
+    message_ww             INTEGER,
+    -- Setpoints
+    vorlauf_soll           REAL,
+    traum1                 REAL,
     PRIMARY KEY (id, ts)
 );
 

@@ -65,23 +65,30 @@ log = logging.getLogger(__name__)
 #   M15 (C15) → Register 14 uint16    factor=1   → message_ww
 #   M16 (C16) → Register 15 signed16  factor=10  → vorlauf_soll
 
+#
+# WICHTIG: CMI-Holding-Register-Adressen sind 1-BASED am Wire.
+# outmag=N im CMI-Webinterface landet am Wire auf addr=N+1.
+# Plus: CMI sendet Temperaturen als 1/100 °C (raw=2920 fuer 29.2 °C),
+# also factor=0.01 statt 0.1.
+# Coils dagegen sind 0-based (outmag=N → addr=N), siehe MODBUS_COIL_MAP.
+#
 MODBUS_REGISTER_MAP: dict[int, tuple[str, str, float]] = {
-    0:  ("aussen",                  "int16",  0.1),
-    1:  ("vorlauf",                 "int16",  0.1),
-    2:  ("ruecklauf",               "int16",  0.1),
-    3:  ("warmwasser",              "int16",  0.1),
-    # 4 = ungenutzt (M5 leer)
-    5:  ("traum1",                  "int16",  0.1),
-    6:  ("heissgas",                "int16",  0.1),
-    7:  ("fluessigkeit",            "int16",  0.1),
-    8:  ("saugleitung",             "int16",  0.1),
-    9:  ("betr_std_verdichter",     "uint32", 1.0),  # 2 Regs: 9+10
-    10: ("schaltungen_verdichter",  "uint32", 1.0),  # 2 Regs: 10+11
-    11: ("betr_std_heizstab_fb",    "uint32", 1.0),  # 2 Regs: 11+12
-    12: ("betr_std_heizstab_ww",    "uint32", 1.0),  # 2 Regs: 12+13
-    13: ("message_fb",              "uint16", 1.0),
-    14: ("message_ww",              "uint16", 1.0),
-    15: ("vorlauf_soll",            "int16",  0.1),
+    1:  ("aussen",                  "int16",  0.01),
+    2:  ("vorlauf",                 "int16",  0.01),
+    3:  ("ruecklauf",               "int16",  0.01),
+    4:  ("warmwasser",              "int16",  0.01),
+    # 5 = ungenutzt (M5 leer)
+    6:  ("traum1",                  "int16",  0.01),
+    7:  ("heissgas",                "int16",  0.01),
+    8:  ("fluessigkeit",            "int16",  0.01),
+    9:  ("saugleitung",             "int16",  0.01),
+    10: ("betr_std_verdichter",     "uint32", 1.0),  # 2 Regs: 10+11
+    11: ("schaltungen_verdichter",  "uint32", 1.0),  # 2 Regs: 11+12
+    12: ("betr_std_heizstab_fb",    "uint32", 1.0),  # 2 Regs: 12+13
+    13: ("betr_std_heizstab_ww",    "uint32", 1.0),  # 2 Regs: 13+14
+    14: ("message_fb",              "uint16", 1.0),
+    15: ("message_ww",              "uint16", 1.0),
+    16: ("vorlauf_soll",            "int16",  0.01),
 }
 
 # Register die den HIGH-WORD eines uint32 darstellen (start_addr)
@@ -94,53 +101,100 @@ UINT32_START_REGS: frozenset[int] = frozenset(
 # ---------------------------------------------------------------------------
 # Format: coil_addr -> sensor_name
 # CMI schreibt FC05 (write single coil) fuer jeden Digital-Output.
-# (aus tools/cmi_bulk_modbus_digital.py)
+#
+# WICHTIG: CMI-Coil-Adressen sind 1-BASED am Wire (analog zu Holding-Register).
+# outmag=N im CMI-Webinterface landet auf Wire-Adresse N+1.
+# Verifiziert 2026-05-07 anhand laufender Anlage:
+#   addr=8 raw=1 = o_verdichter (Verdichter laeuft)
+#   addr=10 raw=0 = alarm_ext (kein Alarm)
+#
+#
+# 2026-05-09 (final): Layout aligned with new CMI config 'one of one' user spec.
+# Sequence follows UVR CAN-output order from CMI Network-Outputs page 3E005826:
+#   Wire 1..5  -> S10..S14 (digital inputs Phasen/Verdichter-Freigabe/ND/HD/ND2)
+#   Wire 6     -> Meldung 8 Heizung
+#   Wire 7..9  -> A1..A3 (Pumpe-Hzkr, Ladepumpe, O_Verdichter)
+#   Wire 10    -> A5 Alarm ext
+#   Wire 11    -> A4 MV R0407 FL1
+#   Wire 12    -> A6 MV R0407 Nach2
+#   Wire 13    -> A7 Ventil-WW
+#   Wire 14    -> A8 Heizstab1 (HZ)
+#   Wire 15    -> A9 Heizstab2 (WW)
+#   Wire 16    -> A10 Pumpe-Zirku
+#
 MODBUS_COIL_MAP: dict[int, str] = {
-    0:  "phasenwaecht",
-    1:  "i_verdichter",
-    2:  "nd_schalter1",
-    3:  "hd_schalter",
-    4:  "nd_schalter2",
-    5:  "pumpe_hzkr",
-    6:  "ladepumpe",
-    7:  "o_verdichter",
-    8:  "mvr0407_fl1",
-    9:  "alarm_ext",
-    10: "mvr0407_nach2",
-    11: "ventil_ww",
-    12: "heizstab_ww",
-    13: "heizstab_hz",
-    14: "zirk_pumpe",
-    15: "alert_fb",
+    1:  "phasenwaecht",       # S10
+    2:  "i_verdichter",       # S11
+    3:  "nd_schalter1",       # S12
+    4:  "hd_schalter",        # S13
+    5:  "nd_schalter2",       # S14
+    6:  "meldung_heizung",    # Meldung 8 (Heizung)
+    7:  "pumpe_hzkr",         # A1
+    8:  "ladepumpe",          # A2
+    9:  "o_verdichter",       # A3 (real run status)
+    10: "alarm_ext",          # A5  (note: A5 before A4 in UVR CAN-out order)
+    11: "mvr0407_fl1",        # A4
+    12: "mvr0407_nach2",      # A6
+    13: "ventil_ww",          # A7
+    14: "heizstab_hz",        # A8 = Heizstab1 (Heizung)
+    15: "heizstab_ww",        # A9 = Heizstab2 (Warmwasser)
+    16: "zirk_pumpe",         # A10 (sensor name; mapped to 'pumpe_zirku' field)
 }
 
 # ---------------------------------------------------------------------------
 # Mapping Modbus-Sensor-Name → AppState.Sensoren-Feld
 # ---------------------------------------------------------------------------
 SENSOR_FIELD_MAP: dict[str, str] = {
-    "aussen":      "aussen",
-    "vorlauf":     "vorlauf",
-    "ruecklauf":   "ruecklauf",
-    "warmwasser":  "warmwasser",
-    "heissgas":    "heissgas",
-    "fluessigkeit":"fluessigkeit",
-    "saugleitung": "saugleitung",
-    # traum1, vorlauf_soll, counters, messages: kein direktes Sensoren-Feld
+    "aussen":                  "aussen",
+    "vorlauf":                 "vorlauf",
+    "ruecklauf":               "ruecklauf",
+    "warmwasser":              "warmwasser",
+    "heissgas":                "heissgas",
+    "fluessigkeit":            "fluessigkeit",
+    "saugleitung":             "saugleitung",
+    "traum1":                  "traum1",
+    "vorlauf_soll":            "vorlauf_soll",
+    "betr_std_verdichter":     "betr_std_verdichter",
+    "schaltungen_verdichter":  "schaltungen_verdichter",
+    "betr_std_heizstab_fb":    "betr_std_heizstab_fb",
+    "betr_std_heizstab_ww":    "betr_std_heizstab_ww",
+    "message_fb":              "message_fb",
+    "message_ww":              "message_ww",
 }
 
 COIL_SENSOR_FIELD_MAP: dict[str, str] = {
-    "i_verdichter":  "verdichter",
-    "ventil_ww":     "ventil_ww",
-    "heizstab_ww":   "heizstab_ww",
-    "heizstab_hz":   "heizstab_hz",
-    "zirk_pumpe":    "pumpe_zirku",
-    "alarm_ext":     "alarm",
-    "phasenwaecht":  "phasenwaechter",
-    "nd_schalter1":  "nd_schalter1",
-    "hd_schalter":   "hd_schalter",
-    "nd_schalter2":  "nd_schalter2",
-    "o_verdichter":  "verdichter",     # physischer Verdichter-Ausgang
+    # Inputs (S10..S14)
+    "phasenwaecht":    "phasenwaechter",
+    "i_verdichter":    "verdichter_freigabe",  # S11 phase enable — always 1 when power on
+    "nd_schalter1":    "nd_schalter1",
+    "hd_schalter":     "hd_schalter",
+    "nd_schalter2":    "nd_schalter2",
+    # Messages
+    "meldung_heizung": "meldung_heizung",      # Meldung 8 (Heizung)
+    # Outputs A1..A10 (real actor states)
+    "pumpe_hzkr":      "pumpe_hzkr",           # A1
+    "ladepumpe":       "ladepumpe",            # A2
+    "o_verdichter":    "verdichter",           # A3 real run status
+    "alarm_ext":       "alarm",                # A5
+    "mvr0407_fl1":     "mvr0407_fl1",          # A4
+    "mvr0407_nach2":   "mvr0407_nach2",        # A6
+    "ventil_ww":       "ventil_ww",            # A7
+    "heizstab_hz":     "heizstab_hz",          # A8 Heizstab1 (Heizung)
+    "heizstab_ww":     "heizstab_ww",          # A9 Heizstab2 (Warmwasser)
+    "zirk_pumpe":      "pumpe_zirku",          # A10
 }
+
+# Sensoren-Felder, fuer die Modbus die Primaerquelle ist.
+# Web-Scraper darf diese nur schreiben, wenn Modbus laenger als
+# MODBUS_FRESHNESS_SECONDS keinen Update mehr geliefert hat.
+MODBUS_OWNED_FIELDS: frozenset[str] = frozenset(
+    set(SENSOR_FIELD_MAP.values()) | set(COIL_SENSOR_FIELD_MAP.values())
+)
+MODBUS_FRESHNESS_SECONDS: int = 300
+
+# Modbus ist Primaerquelle. Auf False setzen um nur zu loggen
+# (Diagnose-Modus, falls CMI-Konfig wieder kippt).
+MODBUS_DROP_VALUES: bool = False
 
 
 # ---------------------------------------------------------------------------
@@ -292,7 +346,9 @@ class _StateUpdatingDataBlock(ModbusSequentialDataBlock):
 
     def setValues(self, address: int, values) -> None:
         super().setValues(address, values)
-        # Kick async update (fire-and-forget im laufenden event-loop)
+        # Kick async update (fire-and-forget im laufenden event-loop).
+        # Strukturiertes Logging passiert in _async_update() — dort wissen
+        # wir auch, ob applied=YES/NO (Drop-Mode-abhaengig).
         try:
             loop = asyncio.get_event_loop()
             if loop.is_running():
@@ -308,31 +364,46 @@ class _StateUpdatingDataBlock(ModbusSequentialDataBlock):
 
         await modbus_health.record_write(source_ip or "unknown", is_coil=self.is_coil)
 
-        if app_state is None:
-            return
+        applied = "NO" if MODBUS_DROP_VALUES else "YES"
 
         if self.is_coil:
             # Coil: values kann bool oder list sein
             if isinstance(values, list):
-                for i, v in enumerate(values):
-                    result = decode_coil(address + i, bool(v))
-                    if result:
-                        coil_name, coil_val = result
-                        await app_state.update_coil_from_modbus(coil_name, coil_val)
+                vlist = values
             else:
-                result = decode_coil(address, bool(values))
-                if result:
+                vlist = [values]
+            for i, v in enumerate(vlist):
+                addr_i = address + i
+                bool_v = bool(v)
+                result = decode_coil(addr_i, bool_v)
+                sensor_name = result[0] if result else MODBUS_COIL_MAP.get(addr_i, "unknown")
+                log.info(
+                    "Modbus-RAW addr=%d sensor=%s raw=%d signed=%d decoded=%s applied=%s",
+                    addr_i, sensor_name, int(bool_v), int(bool_v),
+                    result[1] if result else None,
+                    applied,
+                )
+                if result and app_state is not None and not MODBUS_DROP_VALUES:
                     coil_name, coil_val = result
                     await app_state.update_coil_from_modbus(coil_name, coil_val)
         else:
             # Holding-Register
             if not isinstance(values, list):
                 values = [values]
+            entry = MODBUS_REGISTER_MAP.get(address)
+            sensor_name = entry[0] if entry else "unknown"
+            raw_first = values[0] if values else 0
+            signed_first = raw_first if raw_first < 32768 else raw_first - 65536
             result = decode_register(address, values, self._offsets)
-            if result:
-                sensor_name, sensor_val = result
-                await app_state.update_from_modbus(sensor_name, sensor_val)
-            elif len(values) == 1:
+            decoded_val = result[1] if result else None
+            log.info(
+                "Modbus-RAW addr=%d sensor=%s raw=%d signed=%d decoded=%s applied=%s",
+                address, sensor_name, raw_first, signed_first, decoded_val, applied,
+            )
+            if result and app_state is not None and not MODBUS_DROP_VALUES:
+                s_name, s_val = result
+                await app_state.update_from_modbus(s_name, s_val)
+            elif not result and len(values) == 1:
                 log.debug("HR addr=%d: kein Mapping", address)
 
 

@@ -488,12 +488,18 @@ def main() -> int:
     # 4. Vergleich
     warnings = compare_values(modbus_vals, cmi_messwerte, cmi_ausgaenge)
 
-    # 5. Telegram bei Abweichungen
-    if warnings:
-        for w in warnings:
+    # 5. Telegram only for digital mismatches; analog drifts are noise (user 2026-05-08)
+    telegram_warnings = [w for w in warnings if "Digital-Mismatch" in w]
+    if telegram_warnings:
+        for w in telegram_warnings:
             tg_msg = f"{TELEGRAM_PREFIX} {w}"
             send_telegram(tg_msg)
-        log.warning("Plausibility-Check: %d Warnung(en) gesendet", len(warnings))
+        log.warning(
+            "Plausibility-Check: %d Telegram-Warnung(en) gesendet",
+            len(telegram_warnings),
+        )
+    elif warnings:
+        log.info("Plausibility-Check: %d Drift-Warnung(en) (log-only)", len(warnings))
     else:
         log.info("Plausibility-Check: alle Werte OK — kein Alarm")
 
