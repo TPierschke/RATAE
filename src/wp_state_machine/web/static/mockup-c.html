@@ -69,10 +69,10 @@ body::after { background:radial-gradient(circle at 70% 52%, rgba(216,200,255,.08
 .grid-2 { grid-template-columns:1.2fr .8fr; }
 .grid-2 > * { min-width:0; }
 .tile,.panel { transition:transform .24s ease, border-color .24s ease; }
-.tile { padding:12px 18px; }
+.tile { padding:7px 16px; }
 .tile:hover,.panel:hover { transform:scale(1.012); border-color:rgba(255,255,255,.14); }
 .label { font-size:12px; letter-spacing:.08em; text-transform:uppercase; }
-.value { margin-top:10px; font:700 clamp(28px, 4.6vw, 44px)/1 Inter,Geist,sans-serif; letter-spacing:-.045em; }
+.value { margin-top:2px; font:700 clamp(28px, 3.6vw, 36px)/.93 Inter,Geist,sans-serif; letter-spacing:-.045em; }
 .value small { font-size:.48em; color:rgba(255,255,255,.68); }
 .warm .value { color:var(--peach); }
 .live .value { color:var(--mint); }
@@ -445,7 +445,7 @@ button {
     </section>
 
     <footer class="footer glass">
-      <span>FE 0.2.0 · BE 0.2.0</span>
+      <span>FE 0.2.8 · BE 0.2.0</span>
       <span>SSE <span class="ok">● verbunden</span> · 2026-05-09</span>
     </footer>
   </section>
