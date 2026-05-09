@@ -66,8 +66,8 @@ document.addEventListener('alpine:init', () => {
       4: 'Abgesenkt', 5: 'Party', 6: 'Urlaub', 7: 'Feiertag'
     },
 
-    // Versions (Footer)
-    frontendVersion: '0.1.5-fe-20260506-11',
+    // Versions (Footer) — both pulled from /api/version, never hardcoded.
+    frontendVersion: 'lade...',
     backendVersion: 'lade...',
 
     // SSE-Source
@@ -106,11 +106,14 @@ document.addEventListener('alpine:init', () => {
           const data = await resp.json();
           const build = data.build ? ` (${data.build})` : '';
           this.backendVersion = (data.backend || '?') + build;
+          this.frontendVersion = data.frontend || '?';
         } else {
           this.backendVersion = 'http ' + resp.status;
+          this.frontendVersion = 'http ' + resp.status;
         }
       } catch (e) {
         this.backendVersion = 'fehler';
+        this.frontendVersion = 'fehler';
       }
     },
 
