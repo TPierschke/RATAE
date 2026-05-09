@@ -10,6 +10,34 @@
   'use strict';
 
   var POLL_INTERVAL_MS = 5000;
+
+  // Sliding-window dT/dt tracker fuer ETA-Schaetzung im HEIZUNG-Mode.
+  // Resettet sich automatisch wenn der State nicht mehr HEIZUNG ist.
+  var heizungTracker = { samples: [] };
+
+  function trackHeizungSample(rl) {
+    var now = Date.now();
+    heizungTracker.samples.push({ t: now, rl: rl });
+    var cutoff = now - 6 * 60 * 1000;
+    heizungTracker.samples = heizungTracker.samples.filter(function (s) {
+      return s.t > cutoff;
+    });
+  }
+
+  function calcHeizungEtaMin(diffToOff) {
+    var s = heizungTracker.samples;
+    if (s.length < 3) return null;
+    var first = s[0];
+    var last = s[s.length - 1];
+    var dtMin = (last.t - first.t) / 60000;
+    var drC = last.rl - first.rl;
+    if (dtMin < 1) return null;
+    if (drC <= 0.05) return null;
+    var rate = drC / dtMin;
+    var etaMin = diffToOff / rate;
+    if (etaMin <= 0 || etaMin > 180) return null;
+    return Math.round(etaMin);
+  }
   var MODE_NAMES = {
     1: 'Standby',
     2: 'Zeit/Auto',
@@ -196,6 +224,9 @@
     var verdichter = normalizeBool(state.verdichter);
     var verdichterLabel = verdichter === true ? 'aktiv' : (verdichter === false ? 'aus' : '---');
 
+    // Tracker reset wenn nicht mehr HEIZUNG
+    if (rawState !== 'HEIZUNG') heizungTracker.samples = [];
+
     switch (rawState) {
       case 'BEREIT':
         return 'Anlage in Bereitschaft';
@@ -206,9 +237,12 @@
         var vlSoll = typeof state.vorlauf_soll === 'number' ? state.vorlauf_soll : null;
         var rl = typeof state.ruecklauf === 'number' ? state.ruecklauf : null;
         if (rl !== null && vlSoll !== null) {
+          trackHeizungSample(rl);
           var diff = vlSoll - rl;
           if (diff > 0.1) {
-            return 'Verdichter ' + verdichterLabel + ' · RL ' + rl.toFixed(1) + '° · noch ' + diff.toFixed(1) + '° bis Abschaltung (Soll ' + vlSoll.toFixed(1) + '°)';
+            var eta = calcHeizungEtaMin(diff);
+            var etaPart = eta !== null ? ' · ETA ~' + eta + ' min' : '';
+            return 'Verdichter ' + verdichterLabel + ' · RL ' + rl.toFixed(1) + '° · noch ' + diff.toFixed(1) + '° bis Abschaltung (Soll ' + vlSoll.toFixed(1) + '°)' + etaPart;
           }
           return 'Verdichter ' + verdichterLabel + ' · RL ' + rl.toFixed(1) + '° · ueber Aus-Punkt (Soll ' + vlSoll.toFixed(1) + '°)';
         }
