@@ -58,6 +58,7 @@ document.addEventListener('alpine:init', () => {
     statusOk: true,
     scraping: false,
     activeTab: 'dashboard',  // 'dashboard' | 'all'
+    theme: 'live',
 
     // Betriebsart-Auswahl
     selectedBetriebsart: 3,
@@ -74,12 +75,43 @@ document.addEventListener('alpine:init', () => {
     _sse: null,
     _charts: {},
 
-    init() {
+    async init() {
+      await this.loadTheme();
+      if (this.theme !== 'live' && window.location.pathname === '/') {
+        window.location.replace('/static/mockup-' + this.theme + '.html');
+        return;
+      }
       this.loadBackendVersion();
       this.fetchState();          // Sofort einmal alle Werte holen
       this.startSSE();             // Live-Updates
       this.startPollFallback();    // Sicherheitsnetz alle 15s falls SSE schlaeft
       this.$nextTick(() => this.initCharts());
+    },
+
+    async loadTheme() {
+      try {
+        const resp = await fetch('/api/theme', {cache: 'no-store'});
+        if (resp.ok) {
+          const data = await resp.json();
+          this.theme = data.theme || 'live';
+        }
+      } catch (e) {}
+    },
+
+    async changeTheme() {
+      try {
+        const resp = await fetch('/api/theme', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({theme: this.theme})
+        });
+        if (!resp.ok) return;
+        if (this.theme === 'live') {
+          window.location.href = '/';
+        } else {
+          window.location.href = '/static/mockup-' + this.theme + '.html';
+        }
+      } catch (e) {}
     },
 
     async fetchState() {

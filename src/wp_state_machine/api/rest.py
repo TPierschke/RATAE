@@ -29,6 +29,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 _STATIC_DIR = Path(__file__).parents[1] / "web" / "static"
 
@@ -64,8 +65,18 @@ log = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 
+_AVAILABLE_THEMES = ("live", "a", "c", "d", "e", "f", "g", "h", "i", "j", "k")
+
+
+class ThemeRequest(BaseModel):
+    theme: str
+
+
 class AppState:
     """Globaler App-State. Wird in tests via Dependency-Injection ersetzt."""
+
+    theme: str = "live"
+    theme_path: Path
 
     def __init__(self) -> None:
         self.sensoren: Sensoren = Sensoren()
@@ -79,7 +90,27 @@ class AppState:
         self.cmi_reachable: Optional[bool] = None
         self.config: Any = None  # Config (gesetzt beim Startup)
         self.startup_time: Optional[str] = None  # ISO8601 UTC, gesetzt in __main__.main()
+        self.theme = "live"
+        self.theme_path = Path("~/.config/wp-state-machine/theme.json").expanduser()
+        try:
+            if self.theme_path.exists():
+                data = json.loads(self.theme_path.read_text(encoding="utf-8"))
+                theme = data.get("theme")
+                if theme in _AVAILABLE_THEMES:
+                    self.theme = theme
+        except (OSError, json.JSONDecodeError, TypeError):
+            pass
         self._lock = asyncio.Lock()
+
+    async def set_theme(self, theme: str) -> None:
+        if theme not in _AVAILABLE_THEMES:
+            raise ValueError(f"invalid theme: {theme}")
+        async with self._lock:
+            self.theme_path.parent.mkdir(parents=True, exist_ok=True)
+            tmp_path = self.theme_path.with_suffix(self.theme_path.suffix + ".tmp")
+            tmp_path.write_text(json.dumps({"theme": theme}), encoding="utf-8")
+            tmp_path.replace(self.theme_path)
+            self.theme = theme
 
     async def update_sensoren(self, sensoren: Sensoren) -> None:
         """
@@ -219,6 +250,24 @@ def create_app(state: Optional[AppState] = None) -> FastAPI:
             "backend": _BACKEND_VERSION,
             "frontend": _FRONTEND_VERSION,
             "build": _state.startup_time,
+        }
+
+    @app.get("/api/theme")
+    async def api_theme() -> dict[str, Any]:
+        return {
+            "theme": _state.theme,
+            "available": list(_AVAILABLE_THEMES),
+        }
+
+    @app.post("/api/theme")
+    async def api_set_theme(req: ThemeRequest) -> dict[str, Any]:
+        try:
+            await _state.set_theme(req.theme)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        return {
+            "theme": _state.theme,
+            "saved": True,
         }
 
     @app.get("/")

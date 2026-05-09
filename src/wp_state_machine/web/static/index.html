@@ -10,7 +10,7 @@
   <title>WP State Machine</title>
   <link rel="manifest" href="/static/manifest.json">
   <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
-  <link rel="stylesheet" href="/static/app.css?v=20260509-02">
+  <link rel="stylesheet" href="/static/app.css?v=20260509-03">
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -19,7 +19,7 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <!-- App JS — Version per Query-Param fuer Cache-Bust -->
-  <script src="/static/app.js?v=20260509-02"></script>
+  <script src="/static/app.js?v=20260509-03"></script>
 </head>
 <body class="min-h-screen" x-data="wpApp" x-init="init()">
 
@@ -29,16 +29,38 @@
   </div>
 
   <!-- Header -->
-  <header class="px-4 pt-4 pb-2 flex items-center justify-between">
-    <div>
-      <h1 class="text-lg font-bold text-white">WP State Machine</h1>
-      <p class="text-xs text-slate-400">
-        CMI 192.168.178.45 · v0.1 ·
-        <span x-text="'Quelle: ' + source"
-              :class="source === 'modbus' ? 'text-green-400' : (source === 'web_scraper' ? 'text-amber-400' : 'text-slate-500')"></span>
-      </p>
+  <header class="px-4 pt-4 pb-2 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-4">
+      <label class="flex items-center gap-2 text-xs text-slate-400">
+        <span>Theme:</span>
+        <select
+          x-model="theme"
+          @change="changeTheme()"
+          class="rounded-md border border-slate-600 bg-slate-800 px-2 py-1 text-xs text-slate-200 focus:border-cyan-500 focus:outline-none"
+        >
+          <option value="live">Live UI</option>
+          <option value="a">Neon Console</option>
+          <option value="c">Glass Future</option>
+          <option value="d">Kinetic Maximalism</option>
+          <option value="e">Bauhaus Industrial</option>
+          <option value="f">Liquid Chrome</option>
+          <option value="g">Utilitarian Cockpit</option>
+          <option value="h">Live Schematic</option>
+          <option value="i">Light Calm</option>
+          <option value="j">Aviation Cockpit</option>
+          <option value="k">Linear Pro</option>
+        </select>
+      </label>
+      <div>
+        <h1 class="text-lg font-bold text-white">WP State Machine</h1>
+        <p class="text-xs text-slate-400">
+          CMI 192.168.178.45 · v0.1 ·
+          <span x-text="'Quelle: ' + source"
+                :class="source === 'modbus' ? 'text-green-400' : (source === 'web_scraper' ? 'text-amber-400' : 'text-slate-500')"></span>
+        </p>
+      </div>
     </div>
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-2 self-end sm:self-auto">
       <span class="status-dot conn-indicator" :class="connected ? 'on' : 'unknown'"></span>
       <span class="text-xs text-slate-400 conn-indicator" x-text="connected ? (lastUpdate ?? 'verbunden') : 'getrennt'"></span>
     </div>
