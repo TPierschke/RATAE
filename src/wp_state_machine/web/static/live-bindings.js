@@ -18,33 +18,51 @@
     return pad(date.getHours()) + ':' + pad(date.getMinutes());
   }
 
-  // The dummy values that all mockups ship with. The order matters: longest /
-  // most-specific patterns first so we do not partially replace a value.
+  // The dummy values that all mockups ship with. Patterns are only added if
+  // we have a real reading — otherwise the mockup-dummy stays untouched, which
+  // is a much friendlier fallback than printing "---" or "UNKNOWN" everywhere.
   function buildPatterns(s, wpState) {
-    var aussen = fmtTemp(s.aussen, true);
-    var ww = fmtTemp(s.warmwasser, false);
-    var vl = fmtTemp(s.vorlauf, false);
-    var rl = fmtTemp(s.ruecklauf, false);
-    var state = (wpState || 'UNKNOWN').toUpperCase();
+    var patterns = [];
+    function add(re, val) { if (val !== null && val !== undefined && val !== '---') patterns.push([re, val]); }
+    function fmt(v, signed) {
+      if (v === null || v === undefined) return null;
+      var n = Number(v);
+      if (Number.isNaN(n)) return null;
+      return (n >= 0 && signed ? '+' : '') + n.toFixed(1) + '°';
+    }
 
-    // Pattern: literal regex (escaped), replacement string.
-    return [
-      [/\+5\.2°C\/min/g, aussen + 'C/min'],     // delta hint should not match
-      [/\+5\.2°C/g, aussen + 'C'],
-      [/\+?5\.2°/g, aussen],
-      [/52\.8°C/g, ww + 'C'],
-      [/52\.8°/g, ww],
-      [/52\.8 C\b/g, ww + 'C'],
-      [/36\.4°C/g, vl + 'C'],
-      [/36\.4°/g, vl],
-      [/36\.4 C\b/g, vl + 'C'],
-      [/28\.1°C/g, rl + 'C'],
-      [/28\.1°/g, rl],
-      [/28\.1 C\b/g, rl + 'C'],
-      // wp_state callouts. We are conservative: only the standalone uppercase
-      // word, not partial matches like HEIZUNG-PUMP.
-      [/\bHEIZUNG\b/g, state]
-    ];
+    var aussen = fmt(s.aussen, true);
+    var ww = fmt(s.warmwasser, false);
+    var vl = fmt(s.vorlauf, false);
+    var rl = fmt(s.ruecklauf, false);
+
+    // Order matters: longest / most-specific patterns first.
+    if (aussen) {
+      add(/\+5\.2°C\/min/g, aussen + 'C/min');
+      add(/\+5\.2°C/g, aussen + 'C');
+      add(/\+?5\.2°/g, aussen);
+    }
+    if (ww) {
+      add(/52\.8°C/g, ww + 'C');
+      add(/52\.8°/g, ww);
+      add(/52\.8 C\b/g, ww + 'C');
+    }
+    if (vl) {
+      add(/36\.4°C/g, vl + 'C');
+      add(/36\.4°/g, vl);
+      add(/36\.4 C\b/g, vl + 'C');
+    }
+    if (rl) {
+      add(/28\.1°C/g, rl + 'C');
+      add(/28\.1°/g, rl);
+      add(/28\.1 C\b/g, rl + 'C');
+    }
+    // wp_state: only replace HEIZUNG when we have a known concrete state
+    // that is not UNKNOWN. Otherwise keep the dummy text.
+    if (wpState && wpState !== 'UNKNOWN') {
+      add(/\bHEIZUNG\b/g, wpState.toUpperCase());
+    }
+    return patterns;
   }
 
   function walkText(node, fn) {
