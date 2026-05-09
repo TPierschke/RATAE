@@ -397,7 +397,7 @@
     <div class="dashboard">
       <div class="state">
         <p class="kicker">SYSTEM STATUS</p>
-        <p class="value">HEIZUNG / Verdichter aktiv</p>
+        <p class="value" data-bind-state>HEIZUNG / Verdichter aktiv</p>
       </div>
 
       <section class="schema">
@@ -459,25 +459,25 @@
           <line x1="140" y1="286" x2="140" y2="212" class="sensor-line" />
           <circle cx="140" cy="188" r="24" class="sensor-node" />
           <text x="140" y="184" text-anchor="middle" class="sensor-t">S1</text>
-          <text x="140" y="198" text-anchor="middle" class="sensor-v">Aussen 5.2°</text>
+          <text x="140" y="198" text-anchor="middle" class="sensor-v" data-bind="aussen" data-bind-format="temp">Aussen 5.2°</text>
 
           <line x1="692" y1="244" x2="760" y2="118" class="sensor-line" />
           <circle cx="784" cy="98" r="28" class="sensor-node" />
           <text x="784" y="93" text-anchor="middle" class="sensor-t">S2</text>
-          <text x="784" y="108" text-anchor="middle" class="sensor-v">Vorlauf 36.4°</text>
+          <text x="784" y="108" text-anchor="middle" class="sensor-v" data-bind="vorlauf" data-bind-format="temp-no-sign">Vorlauf 36.4°</text>
 
           <line x1="664" y1="462" x2="730" y2="560" class="sensor-line" />
           <circle cx="754" cy="584" r="30" class="sensor-node" />
           <text x="754" y="579" text-anchor="middle" class="sensor-t">S3</text>
-          <text x="754" y="594" text-anchor="middle" class="sensor-v">Ruecklauf 28.1°</text>
+          <text x="754" y="594" text-anchor="middle" class="sensor-v" data-bind="ruecklauf" data-bind-format="temp-no-sign">Ruecklauf 28.1°</text>
 
           <line x1="974" y1="112" x2="1046" y2="52" class="sensor-line" />
           <circle cx="1068" cy="36" r="28" class="sensor-node" />
           <text x="1068" y="31" text-anchor="middle" class="sensor-t">S4</text>
-          <text x="1068" y="46" text-anchor="middle" class="sensor-v">WW 52.8°</text>
+          <text x="1068" y="46" text-anchor="middle" class="sensor-v" data-bind="warmwasser" data-bind-format="temp-no-sign">WW 52.8°</text>
 
           <text x="104" y="346" class="val">AIR</text>
-          <text x="265" y="349" text-anchor="middle" class="val">ON</text>
+          <text x="265" y="349" text-anchor="middle" class="val" data-bind-bool="verdichter">ON</text>
           <text x="462" y="250" text-anchor="middle" class="val">A</text>
           <text x="626" y="274" text-anchor="middle" class="val">36.4 / 28.1</text>
           <text x="974" y="194" text-anchor="middle" class="val">52.8 C</text>

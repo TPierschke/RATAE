@@ -391,7 +391,7 @@
         <div class="hero-top">
           <div>
             <p class="eyebrow">Aktueller Zustand</p>
-            <h2 class="state">HEIZUNG</h2>
+            <h2 class="state" data-bind-state>HEIZUNG</h2>
             <p class="hero-sub">Verdichter aktiv · Vorlauf <span class="mono">36.4°</span></p>
           </div>
           <div class="spark" aria-hidden="true">
@@ -402,10 +402,10 @@
           </div>
         </div>
         <section class="telemetry">
-          <article class="tile card accent"><p class="tile-label">Aussen</p><p class="tile-value mono">+5.2°</p></article>
-          <article class="tile card accent"><p class="tile-label">Warmwasser</p><p class="tile-value mono">52.8°</p></article>
-          <article class="tile card accent"><p class="tile-label">Vorlauf</p><p class="tile-value mono">36.4°</p></article>
-          <article class="tile card accent"><p class="tile-label">Ruecklauf</p><p class="tile-value mono">28.1°</p></article>
+          <article class="tile card accent"><p class="tile-label">Aussen</p><p class="tile-value mono" data-bind="aussen" data-bind-format="temp">+5.2°</p></article>
+          <article class="tile card accent"><p class="tile-label">Warmwasser</p><p class="tile-value mono" data-bind="warmwasser" data-bind-format="temp-no-sign">52.8°</p></article>
+          <article class="tile card accent"><p class="tile-label">Vorlauf</p><p class="tile-value mono" data-bind="vorlauf" data-bind-format="temp-no-sign">36.4°</p></article>
+          <article class="tile card accent"><p class="tile-label">Ruecklauf</p><p class="tile-value mono" data-bind="ruecklauf" data-bind-format="temp-no-sign">28.1°</p></article>
         </section>
       </section>
       <aside class="side">
@@ -414,12 +414,12 @@
           <table class="table">
             <thead><tr><th>Name</th><th class="mono">Status</th></tr></thead>
             <tbody>
-              <tr><td>Verdichter</td><td><span class="table-status mono"><span class="dot on"></span>AN</span></td></tr>
-              <tr><td>FBH-Pumpe</td><td><span class="table-status mono"><span class="dot on"></span>AN</span></td></tr>
-              <tr><td>Ventil WW</td><td><span class="table-status mono"><span class="dot"></span>AUS</span></td></tr>
-              <tr><td>Heizstab HZ</td><td><span class="table-status mono"><span class="dot"></span>AUS</span></td></tr>
-              <tr><td>Heizstab WW</td><td><span class="table-status mono"><span class="dot"></span>AUS</span></td></tr>
-              <tr><td>Alarm</td><td><span class="table-status mono"><span class="dot"></span>OK</span></td></tr>
+              <tr><td data-bind-bool="verdichter">Verdichter</td><td><span class="table-status mono"><span class="dot on"></span>AN</span></td></tr>
+              <tr><td data-bind-bool="pumpe_hzkr">FBH-Pumpe</td><td><span class="table-status mono"><span class="dot on"></span>AN</span></td></tr>
+              <tr><td data-bind-bool="ventil_ww">Ventil WW</td><td><span class="table-status mono"><span class="dot"></span>AUS</span></td></tr>
+              <tr><td data-bind-alarm="heizstab_hz">Heizstab HZ</td><td><span class="table-status mono"><span class="dot"></span>AUS</span></td></tr>
+              <tr><td data-bind-alarm="heizstab_ww">Heizstab WW</td><td><span class="table-status mono"><span class="dot"></span>AUS</span></td></tr>
+              <tr><td data-bind-alarm="alarm">Alarm</td><td><span class="table-status mono"><span class="dot"></span>OK</span></td></tr>
             </tbody>
           </table>
         </section>

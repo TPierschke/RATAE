@@ -537,7 +537,7 @@
     <section class="hero">
       <div>
         <div class="eyebrow">Systemstatus</div>
-        <h1>HEIZUNG</h1>
+        <h1 data-bind-state>HEIZUNG</h1>
         <p class="subtitle">Verdichter aktiv · Vorlauf 36.4°</p>
       </div>
 
@@ -557,22 +557,22 @@
       <div class="telemetry">
         <article class="card">
           <div class="label">Aussen</div>
-          <div class="value">+5.2<span class="unit">°</span></div>
+          <div class="value" data-bind="aussen" data-bind-format="temp">+5.2<span class="unit">°</span></div>
           <div class="readout">sensor / ambient</div>
         </article>
         <article class="card">
           <div class="label">Warmwasser</div>
-          <div class="value">52.8<span class="unit">°</span></div>
+          <div class="value" data-bind="warmwasser" data-bind-format="temp-no-sign">52.8<span class="unit">°</span></div>
           <div class="readout">tank / domestic hot water</div>
         </article>
         <article class="card">
           <div class="label">Vorlauf Puffer</div>
-          <div class="value">36.4<span class="unit">°</span></div>
+          <div class="value" data-bind="vorlauf" data-bind-format="temp-no-sign">36.4<span class="unit">°</span></div>
           <div class="readout">buffer / supply line</div>
         </article>
         <article class="card">
           <div class="label">Ruecklauf FBH</div>
-          <div class="value">28.1<span class="unit">°</span></div>
+          <div class="value" data-bind="ruecklauf" data-bind-format="temp-no-sign">28.1<span class="unit">°</span></div>
           <div class="readout">return / floor heating</div>
         </article>
       </div>
@@ -581,12 +581,12 @@
         <section class="io-panel">
           <div class="section-label">IO Grid</div>
           <div class="io-grid">
-            <div class="io-item"><span>Verdichter</span><span class="dot on"></span></div>
-            <div class="io-item"><span>Heizkreis Pumpe</span><span class="dot on"></span></div>
-            <div class="io-item"><span>3WV Heizen</span><span class="dot on"></span></div>
-            <div class="io-item"><span>3WV Warmwasser</span><span class="dot"></span></div>
-            <div class="io-item"><span>Heizstab</span><span class="dot"></span></div>
-            <div class="io-item"><span>Zirkulation</span><span class="dot on"></span></div>
+            <div class="io-item"><span data-bind-bool="verdichter">Verdichter</span><span class="dot on"></span></div>
+            <div class="io-item"><span data-bind-bool="pumpe_hzkr">Heizkreis Pumpe</span><span class="dot on"></span></div>
+            <div class="io-item"><span data-bind-bool="ventil_hz">3WV Heizen</span><span class="dot on"></span></div>
+            <div class="io-item"><span data-bind-bool="ventil_ww">3WV Warmwasser</span><span class="dot"></span></div>
+            <div class="io-item"><span data-bind-alarm="heizstab_hz">Heizstab</span><span class="dot"></span></div>
+            <div class="io-item"><span data-bind-bool="pumpe_zirku">Zirkulation</span><span class="dot on"></span></div>
           </div>
         </section>
 

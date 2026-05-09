@@ -381,27 +381,27 @@
       <div class="main-stack">
         <section class="hero card">
           <p class="eyebrow">Aktiver Zustand</p>
-          <h2 class="hero-title">HEIZUNG</h2>
+          <h2 class="hero-title" data-bind-state>HEIZUNG</h2>
           <div class="hero-meta">Verdichter aktiv · Vorlauf 36.4°</div>
           <div class="live mono">Live Status · Takt freigegeben</div>
         </section>
         <section class="telemetry card" aria-label="Telemetry">
-          <article class="tile"><p class="eyebrow">Aussen</p><p class="value">+5.2°</p><div class="mono">Sensor S1</div></article>
-          <article class="tile"><p class="eyebrow">Warmwasser</p><p class="value">52.8°</p><div class="mono">Speicher S4</div></article>
-          <article class="tile"><p class="eyebrow">Vorlauf</p><p class="value">36.4°</p><div class="mono">Kreis S2</div></article>
-          <article class="tile"><p class="eyebrow">Ruecklauf</p><p class="value">28.1°</p><div class="mono">Kreis S3</div></article>
+          <article class="tile"><p class="eyebrow">Aussen</p><p class="value" data-bind="aussen" data-bind-format="temp">+5.2°</p><div class="mono">Sensor S1</div></article>
+          <article class="tile"><p class="eyebrow">Warmwasser</p><p class="value" data-bind="warmwasser" data-bind-format="temp-no-sign">52.8°</p><div class="mono">Speicher S4</div></article>
+          <article class="tile"><p class="eyebrow">Vorlauf</p><p class="value" data-bind="vorlauf" data-bind-format="temp-no-sign">36.4°</p><div class="mono">Kreis S2</div></article>
+          <article class="tile"><p class="eyebrow">Ruecklauf</p><p class="value" data-bind="ruecklauf" data-bind-format="temp-no-sign">28.1°</p><div class="mono">Kreis S3</div></article>
         </section>
       </div>
       <aside class="sidebar card">
         <section class="stack">
           <p class="eyebrow">IO Grid</p>
           <div class="io-grid">
-            <article class="actor"><h3 class="actor-name">Verdichter</h3><span class="pill on">Aktiv</span></article>
-            <article class="actor"><h3 class="actor-name">FBH-Pumpe</h3><span class="pill on">Aktiv</span></article>
-            <article class="actor"><h3 class="actor-name">Ventil WW</h3><span class="pill">Inaktiv</span></article>
-            <article class="actor"><h3 class="actor-name">Heizstab HZ</h3><span class="pill">Inaktiv</span></article>
-            <article class="actor"><h3 class="actor-name">Heizstab WW</h3><span class="pill">Inaktiv</span></article>
-            <article class="actor"><h3 class="actor-name">Alarm</h3><span class="pill">Clear</span></article>
+            <article class="actor"><h3 class="actor-name" data-bind-bool="verdichter">Verdichter</h3><span class="pill on">Aktiv</span></article>
+            <article class="actor"><h3 class="actor-name" data-bind-bool="pumpe_hzkr">FBH-Pumpe</h3><span class="pill on">Aktiv</span></article>
+            <article class="actor"><h3 class="actor-name" data-bind-bool="ventil_ww">Ventil WW</h3><span class="pill">Inaktiv</span></article>
+            <article class="actor"><h3 class="actor-name" data-bind-alarm="heizstab_hz">Heizstab HZ</h3><span class="pill">Inaktiv</span></article>
+            <article class="actor"><h3 class="actor-name" data-bind-alarm="heizstab_ww">Heizstab WW</h3><span class="pill">Inaktiv</span></article>
+            <article class="actor"><h3 class="actor-name" data-bind-alarm="alarm">Alarm</h3><span class="pill">Clear</span></article>
           </div>
         </section>
         <section class="stack">

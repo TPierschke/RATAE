@@ -425,26 +425,26 @@ button {
 
   <section class="hero glass">
     <div class="eyebrow">Aktueller Zustand</div>
-    <div class="state">HEIZUNG</div>
+    <div class="state" data-bind-state>HEIZUNG</div>
     <div class="state-sub">Verdichter aktiv · Vorlauf 36.4°</div>
   </section>
 
   <section class="grid-4">
     <article class="tile glass live">
       <div class="label">Aussen</div>
-      <div class="value">+5.2<small>°</small></div>
+      <div class="value" data-bind="aussen" data-bind-format="temp">+5.2<small>°</small></div>
     </article>
     <article class="tile glass warm">
       <div class="label">Warmwasser</div>
-      <div class="value">52.8<small>°</small></div>
+      <div class="value" data-bind="warmwasser" data-bind-format="temp-no-sign">52.8<small>°</small></div>
     </article>
     <article class="tile glass">
       <div class="label">Vorlauf Puffer</div>
-      <div class="value">36.4<small>°</small></div>
+      <div class="value" data-bind="vorlauf" data-bind-format="temp-no-sign">36.4<small>°</small></div>
     </article>
     <article class="tile glass">
       <div class="label">Ruecklauf FBH</div>
-      <div class="value">28.1<small>°</small></div>
+      <div class="value" data-bind="ruecklauf" data-bind-format="temp-no-sign">28.1<small>°</small></div>
     </article>
   </section>
 

@@ -381,7 +381,7 @@
         <div class="hero-label">Zentralanzeige / Flight State</div>
         <div class="hero-main">
           <div class="hero-dial">
-            <svg viewBox="0 0 220 220" width="220" height="220" aria-label="HEIZUNG indicator">
+            <svg viewBox="0 0 220 220" width="220" height="220" aria-label="HEIZUNG indicator" data-bind-state>
               <defs><linearGradient id="arc" x1="0" x2="1"><stop offset="0%" stop-color="#8da3b8"/><stop offset="50%" stop-color="#f4b042"/><stop offset="100%" stop-color="#d7dde3"/></linearGradient></defs>
               <path d="M28 146 A82 82 0 0 1 192 146" fill="none" stroke="url(#arc)" stroke-width="12" stroke-linecap="round"/>
               <path d="M48 145 A62 62 0 0 1 172 145" fill="#34597f" opacity=".85"/>
@@ -393,7 +393,7 @@
             </svg>
           </div>
           <div>
-            <div class="hero-title">HEIZUNG</div>
+            <div class="hero-title" data-bind-state>HEIZUNG</div>
             <div class="subcopy">Verdichter aktiv · Vorlauf 36.4°</div>
             <div class="hero-strip">
               <span class="mini-chip">STATE A3</span><span class="mini-chip">FLOW 36.4 C</span><span class="mini-chip">RETURN 28.1 C</span>
@@ -419,7 +419,7 @@
         <svg class="gauge-svg" viewBox="0 0 220 220">
           <circle cx="110" cy="110" r="95" fill="#07090c" stroke="#3b4149" stroke-width="2"/><circle cx="110" cy="110" r="78" fill="none" stroke="#1b2026" stroke-width="14"/>
           <g stroke="#cfd6dd"><line x1="110" y1="24" x2="110" y2="42" transform="rotate(-120 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(-90 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(-60 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(-30 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(0 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(30 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(60 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(90 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(120 110 110)"/></g>
-          <g class="needle slow" style="--angle:-45deg"><line x1="110" y1="114" x2="150" y2="78" stroke="#ff5b5b" stroke-width="5" stroke-linecap="round"/><polygon points="104,112 110,48 116,112" fill="#ff5b5b" opacity=".22"/></g><circle cx="110" cy="110" r="8" fill="#dfe5ea"/><text x="110" y="105" text-anchor="middle" class="digital">+5.2°</text><text x="110" y="124" text-anchor="middle" class="digital small">AMBIENT</text>
+          <g class="needle slow" style="--angle:-45deg"><line x1="110" y1="114" x2="150" y2="78" stroke="#ff5b5b" stroke-width="5" stroke-linecap="round"/><polygon points="104,112 110,48 116,112" fill="#ff5b5b" opacity=".22"/></g><circle cx="110" cy="110" r="8" fill="#dfe5ea"/><text x="110" y="105" text-anchor="middle" class="digital" data-bind="aussen" data-bind-format="temp">+5.2°</text><text x="110" y="124" text-anchor="middle" class="digital small">AMBIENT</text>
         </svg>
       </div></article>
       <article class="gauge-card"><div class="gauge-face">
@@ -427,7 +427,7 @@
         <svg class="gauge-svg" viewBox="0 0 220 220">
           <circle cx="110" cy="110" r="95" fill="#07090c" stroke="#3b4149" stroke-width="2"/><circle cx="110" cy="110" r="78" fill="none" stroke="#1b2026" stroke-width="14"/>
           <g stroke="#cfd6dd"><line x1="110" y1="24" x2="110" y2="42" transform="rotate(-120 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(-90 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(-60 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(-30 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(0 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(30 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(60 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(90 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(120 110 110)"/></g>
-          <g class="needle fast" style="--angle:58deg"><line x1="110" y1="114" x2="146" y2="80" stroke="#f4b042" stroke-width="5" stroke-linecap="round"/><polygon points="104,112 110,48 116,112" fill="#f4b042" opacity=".24"/></g><circle cx="110" cy="110" r="8" fill="#dfe5ea"/><text x="110" y="105" text-anchor="middle" class="digital">52.8°</text><text x="110" y="124" text-anchor="middle" class="digital small">DHW TANK</text>
+          <g class="needle fast" style="--angle:58deg"><line x1="110" y1="114" x2="146" y2="80" stroke="#f4b042" stroke-width="5" stroke-linecap="round"/><polygon points="104,112 110,48 116,112" fill="#f4b042" opacity=".24"/></g><circle cx="110" cy="110" r="8" fill="#dfe5ea"/><text x="110" y="105" text-anchor="middle" class="digital" data-bind="warmwasser" data-bind-format="temp-no-sign">52.8°</text><text x="110" y="124" text-anchor="middle" class="digital small">DHW TANK</text>
         </svg>
       </div></article>
       <article class="gauge-card"><div class="gauge-face">
@@ -435,7 +435,7 @@
         <svg class="gauge-svg" viewBox="0 0 220 220">
           <circle cx="110" cy="110" r="95" fill="#07090c" stroke="#3b4149" stroke-width="2"/><circle cx="110" cy="110" r="78" fill="none" stroke="#1b2026" stroke-width="14"/>
           <g stroke="#cfd6dd"><line x1="110" y1="24" x2="110" y2="42" transform="rotate(-120 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(-90 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(-60 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(-30 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(0 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(30 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(60 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(90 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(120 110 110)"/></g>
-          <g class="needle" style="--angle:14deg"><line x1="110" y1="114" x2="152" y2="90" stroke="#7ecbff" stroke-width="5" stroke-linecap="round"/><polygon points="104,112 110,48 116,112" fill="#7ecbff" opacity=".22"/></g><circle cx="110" cy="110" r="8" fill="#dfe5ea"/><text x="110" y="105" text-anchor="middle" class="digital">36.4°</text><text x="110" y="124" text-anchor="middle" class="digital small">SUPPLY</text>
+          <g class="needle" style="--angle:14deg"><line x1="110" y1="114" x2="152" y2="90" stroke="#7ecbff" stroke-width="5" stroke-linecap="round"/><polygon points="104,112 110,48 116,112" fill="#7ecbff" opacity=".22"/></g><circle cx="110" cy="110" r="8" fill="#dfe5ea"/><text x="110" y="105" text-anchor="middle" class="digital" data-bind="vorlauf" data-bind-format="temp-no-sign">36.4°</text><text x="110" y="124" text-anchor="middle" class="digital small">SUPPLY</text>
         </svg>
       </div></article>
       <article class="gauge-card"><div class="gauge-face">
@@ -443,7 +443,7 @@
         <svg class="gauge-svg" viewBox="0 0 220 220">
           <circle cx="110" cy="110" r="95" fill="#07090c" stroke="#3b4149" stroke-width="2"/><circle cx="110" cy="110" r="78" fill="none" stroke="#1b2026" stroke-width="14"/>
           <g stroke="#cfd6dd"><line x1="110" y1="24" x2="110" y2="42" transform="rotate(-120 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(-90 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(-60 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(-30 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(0 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(30 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(60 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(90 110 110)"/><line x1="110" y1="24" x2="110" y2="42" transform="rotate(120 110 110)"/></g>
-          <g class="needle slow" style="--angle:-10deg"><line x1="110" y1="114" x2="149" y2="95" stroke="#c7d8e8" stroke-width="5" stroke-linecap="round"/><polygon points="104,112 110,48 116,112" fill="#c7d8e8" opacity=".22"/></g><circle cx="110" cy="110" r="8" fill="#dfe5ea"/><text x="110" y="105" text-anchor="middle" class="digital">28.1°</text><text x="110" y="124" text-anchor="middle" class="digital small">RETURN</text>
+          <g class="needle slow" style="--angle:-10deg"><line x1="110" y1="114" x2="149" y2="95" stroke="#c7d8e8" stroke-width="5" stroke-linecap="round"/><polygon points="104,112 110,48 116,112" fill="#c7d8e8" opacity=".22"/></g><circle cx="110" cy="110" r="8" fill="#dfe5ea"/><text x="110" y="105" text-anchor="middle" class="digital" data-bind="ruecklauf" data-bind-format="temp-no-sign">28.1°</text><text x="110" y="124" text-anchor="middle" class="digital small">RETURN</text>
         </svg>
       </div></article>
     </section>
@@ -452,12 +452,12 @@
       <article class="panel"><div class="panel-face">
         <div class="section-label" style="margin-bottom:12px;">Status LEDs</div>
         <div class="led-grid">
-          <div class="led-card"><div class="led-face"><div class="led green active"></div><div class="led-copy">Verdichter</div><div class="led-state">ON</div></div></div>
-          <div class="led-card"><div class="led-face"><div class="led green active"></div><div class="led-copy">FBH-Pumpe</div><div class="led-state">ON</div></div></div>
-          <div class="led-card"><div class="led-face"><div class="led amber"></div><div class="led-copy">Ventil WW</div><div class="led-state">OFF</div></div></div>
-          <div class="led-card"><div class="led-face"><div class="led amber"></div><div class="led-copy">Heizstab HZ</div><div class="led-state">OFF</div></div></div>
-          <div class="led-card"><div class="led-face"><div class="led amber"></div><div class="led-copy">Heizstab WW</div><div class="led-state">OFF</div></div></div>
-          <div class="led-card"><div class="led-face"><div class="led red"></div><div class="led-copy">Alarm</div><div class="led-state">OFF</div></div></div>
+          <div class="led-card"><div class="led-face"><div class="led green active"></div><div class="led-copy" data-bind-bool="verdichter">Verdichter</div><div class="led-state">ON</div></div></div>
+          <div class="led-card"><div class="led-face"><div class="led green active"></div><div class="led-copy" data-bind-bool="pumpe_hzkr">FBH-Pumpe</div><div class="led-state">ON</div></div></div>
+          <div class="led-card"><div class="led-face"><div class="led amber"></div><div class="led-copy" data-bind-bool="ventil_ww">Ventil WW</div><div class="led-state">OFF</div></div></div>
+          <div class="led-card"><div class="led-face"><div class="led amber"></div><div class="led-copy" data-bind-alarm="heizstab_hz">Heizstab HZ</div><div class="led-state">OFF</div></div></div>
+          <div class="led-card"><div class="led-face"><div class="led amber"></div><div class="led-copy" data-bind-alarm="heizstab_ww">Heizstab WW</div><div class="led-state">OFF</div></div></div>
+          <div class="led-card"><div class="led-face"><div class="led red"></div><div class="led-copy" data-bind-alarm="alarm">Alarm</div><div class="led-state">OFF</div></div></div>
         </div>
       </div></article>
       <article class="panel"><div class="panel-face">

@@ -437,26 +437,26 @@ button{
 
     <section class="hero frame">
       <div class="eyebrow">SYSTEMZUSTAND</div>
-      <h1 class="state">HEIZUNG</h1>
+      <h1 class="state" data-bind-state>HEIZUNG</h1>
       <p>Verdichter aktiv · Vorlauf 36.4°</p>
     </section>
 
     <section class="stats">
       <article class="card frame">
         <div class="label">Aussen</div>
-        <div class="value">+5.2°</div>
+        <div class="value" data-bind="aussen" data-bind-format="temp">+5.2°</div>
       </article>
       <article class="card frame">
         <div class="label">Warmwasser</div>
-        <div class="value"><strong>52.8°</strong></div>
+        <div class="value" data-bind="warmwasser" data-bind-format="temp-no-sign"><strong>52.8°</strong></div>
       </article>
       <article class="card frame">
         <div class="label">Vorlauf Puffer</div>
-        <div class="value">36.4°</div>
+        <div class="value" data-bind="vorlauf" data-bind-format="temp-no-sign">36.4°</div>
       </article>
       <article class="card frame">
         <div class="label">Ruecklauf FBH</div>
-        <div class="value">28.1°</div>
+        <div class="value" data-bind="ruecklauf" data-bind-format="temp-no-sign">28.1°</div>
       </article>
     </section>
 
@@ -467,12 +467,12 @@ button{
           <div class="label">6 Actors</div>
         </div>
         <div class="actors-grid">
-          <div class="actor"><span>Verdichter</span><span class="pill on">on</span></div>
-          <div class="actor"><span>FBH-Pumpe</span><span class="pill on">on</span></div>
-          <div class="actor"><span>Ventil WW</span><span class="pill off">off</span></div>
-          <div class="actor"><span>Heizstab HZ</span><span class="pill off">off</span></div>
-          <div class="actor"><span>Heizstab WW</span><span class="pill off">off</span></div>
-          <div class="actor"><span>Alarm</span><span class="pill clear">clear</span></div>
+          <div class="actor"><span data-bind-bool="verdichter">Verdichter</span><span class="pill on">on</span></div>
+          <div class="actor"><span data-bind-bool="pumpe_hzkr">FBH-Pumpe</span><span class="pill on">on</span></div>
+          <div class="actor"><span data-bind-bool="ventil_ww">Ventil WW</span><span class="pill off">off</span></div>
+          <div class="actor"><span data-bind-alarm="heizstab_hz">Heizstab HZ</span><span class="pill off">off</span></div>
+          <div class="actor"><span data-bind-alarm="heizstab_ww">Heizstab WW</span><span class="pill off">off</span></div>
+          <div class="actor"><span data-bind-alarm="alarm">Alarm</span><span class="pill clear">clear</span></div>
         </div>
       </article>
 

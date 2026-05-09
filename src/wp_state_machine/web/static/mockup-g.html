@@ -388,7 +388,7 @@
         <div class="hero-body">
           <div class="hero-state">
             <p class="hero-kicker">AKTIVER MODUS</p>
-            <p class="state-value">HEIZUNG</p>
+            <p class="state-value" data-bind-state>HEIZUNG</p>
             <div class="raw-line">
               VERDICHTER ACTIVE <span class="value-meta">A3</span> ·
               VORLAUF 36.4<span class="unit">°C</span> <span class="value-meta">S2</span> ·
@@ -459,28 +459,28 @@
             <tr>
               <td data-label="Sensor">S1</td>
               <td data-label="Label">Aussen</td>
-              <td data-label="Value" class="num">+5.2</td>
+              <td data-label="Value" class="num" data-bind="aussen" data-bind-format="temp">+5.2</td>
               <td data-label="Unit"><span class="unit">°C</span></td>
               <td data-label="Ref"><span class="ref">ambient</span></td>
             </tr>
             <tr>
               <td data-label="Sensor">S4</td>
               <td data-label="Label">Warmwasser</td>
-              <td data-label="Value" class="num">52.8</td>
+              <td data-label="Value" class="num" data-bind="warmwasser" data-bind-format="temp-no-sign">52.8</td>
               <td data-label="Unit"><span class="unit">°C</span></td>
               <td data-label="Ref"><span class="ref">tank</span></td>
             </tr>
             <tr class="active-row">
               <td data-label="Sensor">S2</td>
               <td data-label="Label">Vorlauf</td>
-              <td data-label="Value" class="num">36.4</td>
+              <td data-label="Value" class="num" data-bind="vorlauf" data-bind-format="temp-no-sign">36.4</td>
               <td data-label="Unit"><span class="unit">°C</span></td>
               <td data-label="Ref"><span class="ref">buffer</span></td>
             </tr>
             <tr>
               <td data-label="Sensor">S3</td>
               <td data-label="Label">Ruecklauf</td>
-              <td data-label="Value" class="num">28.1</td>
+              <td data-label="Value" class="num" data-bind="ruecklauf" data-bind-format="temp-no-sign">28.1</td>
               <td data-label="Unit"><span class="unit">°C</span></td>
               <td data-label="Ref"><span class="ref">floor</span></td>
             </tr>
@@ -501,37 +501,37 @@
           <tbody>
             <tr class="active-row">
               <td data-label="ID">A3</td>
-              <td data-label="Name">Verdichter</td>
+              <td data-label="Name" data-bind-bool="verdichter">Verdichter</td>
               <td data-label="State"><span class="status-cell"><span class="sq on"></span>ON</span></td>
               <td data-label="Time-in-state">00:14:32 <span class="cell-meta">run</span></td>
             </tr>
             <tr class="active-row">
               <td data-label="ID">A1</td>
-              <td data-label="Name">FBH-Pumpe</td>
+              <td data-label="Name" data-bind-bool="pumpe_hzkr">FBH-Pumpe</td>
               <td data-label="State"><span class="status-cell"><span class="sq on"></span>ON</span></td>
               <td data-label="Time-in-state">02:08:11 <span class="cell-meta">run</span></td>
             </tr>
             <tr>
               <td data-label="ID">A7</td>
-              <td data-label="Name">Ventil WW</td>
+              <td data-label="Name" data-bind-bool="ventil_ww">Ventil WW</td>
               <td data-label="State"><span class="status-cell"><span class="sq"></span>OFF</span></td>
               <td data-label="Time-in-state">00:42:08 <span class="cell-meta">stop</span></td>
             </tr>
             <tr>
               <td data-label="ID">A8</td>
-              <td data-label="Name">Heizstab HZ</td>
+              <td data-label="Name" data-bind-alarm="heizstab_hz">Heizstab HZ</td>
               <td data-label="State"><span class="status-cell"><span class="sq"></span>OFF</span></td>
               <td data-label="Time-in-state">stop <span class="cell-meta">-</span></td>
             </tr>
             <tr>
               <td data-label="ID">A9</td>
-              <td data-label="Name">Heizstab WW</td>
+              <td data-label="Name" data-bind-alarm="heizstab_ww">Heizstab WW</td>
               <td data-label="State"><span class="status-cell"><span class="sq"></span>OFF</span></td>
               <td data-label="Time-in-state">stop <span class="cell-meta">-</span></td>
             </tr>
             <tr>
               <td data-label="ID">A5</td>
-              <td data-label="Name">Alarm</td>
+              <td data-label="Name" data-bind-alarm="alarm">Alarm</td>
               <td data-label="State"><span class="status-cell"><span class="sq clear"></span>CLEAR</span></td>
               <td data-label="Time-in-state">- <span class="cell-meta">-</span></td>
             </tr>

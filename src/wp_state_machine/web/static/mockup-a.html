@@ -409,25 +409,25 @@ h1,.state-big,.val{animation:flicker 4s infinite}
 
   <div class="state">
     <div class="state-line"><span>// CURRENT MODE</span><span class="dot on"></span></div>
-    <div class="state-big">HEIZUNG</div>
+    <div class="state-big" data-bind-state>HEIZUNG</div>
     <div class="state-sub">▎ Verdichter aktiv · Vorlauf 36.4°</div>
   </div>
 
   <div class="grid">
-    <div class="cell" data-id="S1"><div class="label">Aussen</div><div class="val cool">+5.2<span class="unit">°C</span></div></div>
-    <div class="cell" data-id="S4"><div class="label">Warmwasser</div><div class="val warm">52.8<span class="unit">°C</span></div></div>
-    <div class="cell" data-id="S2"><div class="label">Vorlauf Puffer</div><div class="val">36.4<span class="unit">°C</span></div></div>
-    <div class="cell" data-id="S3"><div class="label">Ruecklauf FBH</div><div class="val warm">28.1<span class="unit">°C</span></div></div>
+    <div class="cell" data-id="S1"><div class="label">Aussen</div><div class="val cool" data-bind="aussen" data-bind-format="temp">+5.2<span class="unit">°C</span></div></div>
+    <div class="cell" data-id="S4"><div class="label">Warmwasser</div><div class="val warm" data-bind="warmwasser" data-bind-format="temp-no-sign">52.8<span class="unit">°C</span></div></div>
+    <div class="cell" data-id="S2"><div class="label">Vorlauf Puffer</div><div class="val" data-bind="vorlauf" data-bind-format="temp-no-sign">36.4<span class="unit">°C</span></div></div>
+    <div class="cell" data-id="S3"><div class="label">Ruecklauf FBH</div><div class="val warm" data-bind="ruecklauf" data-bind-format="temp-no-sign">28.1<span class="unit">°C</span></div></div>
   </div>
 
   <div class="section">
     <div class="section-title">// IO_BANK / OUTPUTS</div>
-    <div class="row"><span class="dot on"></span><span class="name">Verdichter</span><span class="ref">A3</span></div>
-    <div class="row"><span class="dot on"></span><span class="name">FBH-Pumpe</span><span class="ref">A1</span></div>
-    <div class="row"><span class="dot off"></span><span class="name">Ventil WW</span><span class="ref">A7</span></div>
-    <div class="row"><span class="dot off"></span><span class="name">Heizstab HZ</span><span class="ref">A8</span></div>
-    <div class="row"><span class="dot off"></span><span class="name">Heizstab WW</span><span class="ref">A9</span></div>
-    <div class="row"><span class="dot on"></span><span class="name">Alarm</span><span class="ref">A5 (clear)</span></div>
+    <div class="row"><span class="dot on" data-bind-bool="verdichter"></span><span class="name">Verdichter</span><span class="ref">A3</span></div>
+    <div class="row"><span class="dot on" data-bind-bool="pumpe_hzkr"></span><span class="name">FBH-Pumpe</span><span class="ref">A1</span></div>
+    <div class="row"><span class="dot off" data-bind-bool="ventil_ww"></span><span class="name">Ventil WW</span><span class="ref">A7</span></div>
+    <div class="row"><span class="dot off" data-bind-alarm="heizstab_hz"></span><span class="name">Heizstab HZ</span><span class="ref">A8</span></div>
+    <div class="row"><span class="dot off" data-bind-alarm="heizstab_ww"></span><span class="name">Heizstab WW</span><span class="ref">A9</span></div>
+    <div class="row"><span class="dot on" data-bind-alarm="alarm"></span><span class="name">Alarm</span><span class="ref">A5 (clear)</span></div>
   </div>
 
   <div class="section">

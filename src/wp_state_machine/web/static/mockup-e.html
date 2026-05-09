@@ -447,7 +447,7 @@ button { color:var(--bg); background:var(--red); }
         <div class="hero">
           <div>
             <div class="kicker">Betriebszustand</div>
-            <div class="state">HEIZUNG</div>
+            <div class="state" data-bind-state>HEIZUNG</div>
           </div>
           <div>
             <div class="hero-rule" aria-hidden="true"></div>
@@ -459,22 +459,22 @@ button { color:var(--bg); background:var(--red); }
         <article class="tile">
           <div class="tile-label">TILE.01</div>
           <div class="tile-name">Aussen</div>
-          <div class="value">+5.2°</div>
+          <div class="value" data-bind="aussen" data-bind-format="temp">+5.2°</div>
         </article>
         <article class="tile">
           <div class="tile-label">TILE.02</div>
           <div class="tile-name">Warmwasser</div>
-          <div class="value">52.8°</div>
+          <div class="value" data-bind="warmwasser" data-bind-format="temp-no-sign">52.8°</div>
         </article>
         <article class="tile">
           <div class="tile-label">TILE.03</div>
           <div class="tile-name">Vorlauf Puffer</div>
-          <div class="value">36.4°</div>
+          <div class="value" data-bind="vorlauf" data-bind-format="temp-no-sign">36.4°</div>
         </article>
         <article class="tile">
           <div class="tile-label">TILE.04</div>
           <div class="tile-name">Ruecklauf FBH</div>
-          <div class="value">28.1°</div>
+          <div class="value" data-bind="ruecklauf" data-bind-format="temp-no-sign">28.1°</div>
         </article>
       </section>
     </section>
@@ -483,12 +483,12 @@ button { color:var(--bg); background:var(--red); }
         <div class="panel-id">PANEL.02</div>
         <div class="io-body">
           <div class="actor-list">
-            <div class="actor"><div class="actor-top"><span class="actor-name">Verdichter</span><span class="status on"><span class="icon icon-circle"></span>on</span></div></div>
-            <div class="actor"><div class="actor-top"><span class="actor-name">FBH-Pumpe</span><span class="status on"><span class="icon icon-line"></span>on</span></div></div>
-            <div class="actor"><div class="actor-top"><span class="actor-name">Ventil WW</span><span class="status off"><span class="icon icon-square"></span>off</span></div></div>
-            <div class="actor"><div class="actor-top"><span class="actor-name">Heizstab HZ</span><span class="status off"><span class="icon icon-square"></span>off</span></div></div>
-            <div class="actor"><div class="actor-top"><span class="actor-name">Heizstab WW</span><span class="status off"><span class="icon icon-square"></span>off</span></div></div>
-            <div class="actor"><div class="actor-top"><span class="actor-name">Alarm</span><span class="status clear"><span class="icon icon-circle"></span>clear</span></div></div>
+            <div class="actor"><div class="actor-top"><span class="actor-name" data-bind-bool="verdichter">Verdichter</span><span class="status on"><span class="icon icon-circle"></span>on</span></div></div>
+            <div class="actor"><div class="actor-top"><span class="actor-name" data-bind-bool="pumpe_hzkr">FBH-Pumpe</span><span class="status on"><span class="icon icon-line"></span>on</span></div></div>
+            <div class="actor"><div class="actor-top"><span class="actor-name" data-bind-bool="ventil_ww">Ventil WW</span><span class="status off"><span class="icon icon-square"></span>off</span></div></div>
+            <div class="actor"><div class="actor-top"><span class="actor-name" data-bind-alarm="heizstab_hz">Heizstab HZ</span><span class="status off"><span class="icon icon-square"></span>off</span></div></div>
+            <div class="actor"><div class="actor-top"><span class="actor-name" data-bind-alarm="heizstab_ww">Heizstab WW</span><span class="status off"><span class="icon icon-square"></span>off</span></div></div>
+            <div class="actor"><div class="actor-top"><span class="actor-name" data-bind-alarm="alarm">Alarm</span><span class="status clear"><span class="icon icon-circle"></span>clear</span></div></div>
           </div>
         </div>
       </article>
