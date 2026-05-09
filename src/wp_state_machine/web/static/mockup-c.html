@@ -426,7 +426,7 @@ button {
   <section class="hero glass">
     <div class="eyebrow">Aktueller Zustand</div>
     <div class="state" data-bind-state>HEIZUNG</div>
-    <div class="state-sub">Verdichter aktiv · Vorlauf 36.4°</div>
+    <div class="state-sub" data-bind-state-sub></div>
   </section>
 
   <section class="grid-4">
@@ -455,12 +455,12 @@ button {
         <div class="sub mono">6 Aktoren</div>
       </div>
       <div class="io-grid mono">
-        <div class="io-row"><span>Verdichter</span><span class="io-pill on">aktiv</span></div>
-        <div class="io-row"><span>Heizkreispumpe</span><span class="io-pill on">aktiv</span></div>
-        <div class="io-row"><span>3WV Heizung</span><span class="io-pill on">offen</span></div>
-        <div class="io-row"><span>3WV Warmwasser</span><span class="io-pill off">bereit</span></div>
-        <div class="io-row"><span>Heizstab</span><span class="io-pill off">inaktiv</span></div>
-        <div class="io-row"><span>Zirkulation</span><span class="io-pill off">aus</span></div>
+        <div class="io-row"><span>Verdichter</span><span class="io-pill" data-bind-bool="verdichter" data-bind-text="verdichter:aktiv|aus">---</span></div>
+        <div class="io-row"><span>Heizkreispumpe</span><span class="io-pill" data-bind-bool="pumpe_hzkr" data-bind-text="pumpe_hzkr:aktiv|aus">---</span></div>
+        <div class="io-row"><span>3WV Heizung</span><span class="io-pill" data-bind-text="ventil_ww:geschlossen|offen">---</span></div>
+        <div class="io-row"><span>3WV Warmwasser</span><span class="io-pill" data-bind-bool="ventil_ww" data-bind-text="ventil_ww:offen|geschlossen">---</span></div>
+        <div class="io-row"><span>Heizstab</span><span class="io-pill" data-bind-alarm="heizstab_hz" data-bind-text="heizstab_hz:aktiv|inaktiv">---</span></div>
+        <div class="io-row"><span>Zirkulation</span><span class="io-pill" data-bind-bool="pumpe_zirku" data-bind-text="pumpe_zirku:aktiv|aus">---</span></div>
       </div>
     </article>
 
