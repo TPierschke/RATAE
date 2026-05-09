@@ -75,6 +75,8 @@ body::after { background:radial-gradient(circle at 70% 52%, rgba(216,200,255,.08
 .value small { font-size:.48em; color:rgba(255,255,255,.68); }
 .warm .value { color:var(--peach); }
 .live .value { color:var(--mint); }
+.tile .soll { font-size:.5em; color:rgba(255,255,255,.55); margin-left:8px; vertical-align:middle; }
+.tile .soll::before { content:"→ "; opacity:.6; }
 .title { font:600 15px/1 Geist,Inter,sans-serif; letter-spacing:.03em; }
 .mono,.footer { font-family:"JetBrains Mono",ui-monospace,monospace; }
 .io-grid { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px; }
@@ -329,17 +331,26 @@ button {
         <div class="label">Aussen</div>
         <div class="value" data-bind="aussen" data-bind-format="temp">+5.2<small>°</small></div>
       </article>
+      <article class="tile glass">
+        <div class="label">Raumtemp</div>
+        <div class="value">
+          <span data-bind="traum1" data-bind-format="temp-no-sign">24.0°</span>
+          <small class="soll">—</small><!-- TODO: Raum-Soll als eigenes Sensor-Feld nachruesten -->
+        </div>
+      </article>
       <article class="tile glass warm">
         <div class="label">Warmwasser</div>
-        <div class="value" data-bind="warmwasser" data-bind-format="temp-no-sign">52.8<small>°</small></div>
+        <div class="value">
+          <span data-bind="warmwasser" data-bind-format="temp-no-sign">52.8°</span>
+          <small class="soll">—</small><!-- TODO: WW-Soll mappen (F:2 oder F:9 abhaengig) -->
+        </div>
       </article>
       <article class="tile glass">
         <div class="label">Vorlauf Puffer</div>
-        <div class="value" data-bind="vorlauf" data-bind-format="temp-no-sign">36.4<small>°</small></div>
-      </article>
-      <article class="tile glass">
-        <div class="label">Ruecklauf FBH</div>
-        <div class="value" data-bind="ruecklauf" data-bind-format="temp-no-sign">28.1<small>°</small></div>
+        <div class="value">
+          <span data-bind="vorlauf" data-bind-format="temp-no-sign">36.4°</span>
+          <small class="soll" data-bind="vorlauf_soll" data-bind-format="temp-no-sign">29.9°</small>
+        </div>
       </article>
     </section>
 
