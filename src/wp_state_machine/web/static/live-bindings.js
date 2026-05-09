@@ -1,8 +1,9 @@
 /* Universal DOM bindings for the static UI.
    Contract:
    - Poll `/state` every 5 seconds.
-   - Use `data-bind`, `data-bind-bool`, `data-bind-alarm`, and `data-bind-state`
-     attributes as the single source of truth for live updates.
+   - Use `data-bind`, `data-bind-bool`, `data-bind-alarm`, `data-bind-text`,
+     `data-bind-state`, and `data-bind-state-sub` as the single source of truth
+     for live updates.
    - Never throw, never block on fetch errors, and keep the last good values.
    - Accept server state as either `wp_state` or legacy `state`. */
 (function () {
@@ -35,6 +36,22 @@
     'message_fb',
     'message_ww',
     'betriebsart',
+    'phasenwaechter',
+    'verdichter_freigabe',
+    'nd_schalter1',
+    'hd_schalter',
+    'nd_schalter2',
+    'pumpe_hzkr',
+    'ladepumpe',
+    'verdichter',
+    'mvr0407_fl1',
+    'alarm',
+    'mvr0407_nach2',
+    'ventil_ww',
+    'heizstab_hz',
+    'heizstab_ww',
+    'pumpe_zirku',
+    'meldung_heizung',
     'wp_state'
   ];
   var KNOWN_KEY_SET = new Set(KNOWN_KEYS.concat(['state']));
@@ -139,13 +156,53 @@
   }
 
   function setBinaryClasses(el, value, alarmMode) {
-    el.classList.remove('is-on', 'is-off', 'is-unknown', 'is-alarm');
+    el.classList.remove('on', 'off', 'is-on', 'is-off', 'is-unknown', 'is-alarm');
     if (value === true) {
+      el.classList.add('on');
       el.classList.add(alarmMode ? 'is-alarm' : 'is-on');
     } else if (value === false) {
+      el.classList.add('off');
       el.classList.add('is-off');
     } else {
       el.classList.add('is-unknown');
+    }
+  }
+
+  function parseBindTextSpec(spec) {
+    if (!spec) return null;
+
+    var colonIndex = spec.indexOf(':');
+    if (colonIndex <= 0) return null;
+
+    var pipeIndex = spec.indexOf('|', colonIndex + 1);
+    if (pipeIndex === -1) return null;
+
+    var key = spec.slice(0, colonIndex).trim();
+    if (!key) return null;
+
+    return {
+      key: key,
+      onLabel: spec.slice(colonIndex + 1, pipeIndex),
+      offLabel: spec.slice(pipeIndex + 1)
+    };
+  }
+
+  function getStateSubText(state, rawState) {
+    var vorlauf = formatTemp(state.vorlauf, false);
+    var verdichter = normalizeBool(state.verdichter);
+    var verdichterLabel = verdichter === true ? 'aktiv' : (verdichter === false ? 'aus' : '---');
+
+    switch (rawState) {
+      case 'BEREIT':
+        return 'Anlage in Bereitschaft';
+      case 'HEIZUNG':
+        return 'Verdichter ' + verdichterLabel + ' · Vorlauf ' + vorlauf;
+      case 'WARMWASSER':
+        return 'WW-Bereitung · Vorlauf ' + vorlauf;
+      case 'STANDBY':
+        return 'Standby';
+      default:
+        return '---';
     }
   }
 
@@ -161,6 +218,27 @@
     });
   }
 
+  function applyBooleanTextBindings(state) {
+    document.querySelectorAll('[data-bind-text]').forEach(function (el) {
+      var binding = parseBindTextSpec(el.getAttribute('data-bind-text') || '');
+      if (!binding) {
+        el.textContent = '---';
+        return;
+      }
+
+      var result = getBoundValue(state, binding.key);
+      var value = result.known ? normalizeBool(result.value) : null;
+
+      if (value === true) {
+        el.textContent = binding.onLabel;
+      } else if (value === false) {
+        el.textContent = binding.offLabel;
+      } else {
+        el.textContent = '---';
+      }
+    });
+  }
+
   function applyBinaryBindings(state, attrName, alarmMode) {
     document.querySelectorAll('[' + attrName + ']').forEach(function (el) {
       var key = el.getAttribute(attrName) || '';
@@ -171,21 +249,26 @@
   }
 
   function applyStateBindings(state) {
-    document.querySelectorAll('[data-bind-state]').forEach(function (el) {
-      var rawState = !isNil(state.wp_state) ? String(state.wp_state).toUpperCase() : '---';
-      var stateClass = rawState === 'HEIZUNG' || rawState === 'WARMWASSER' ||
-        rawState === 'BEREIT' || rawState === 'STANDBY'
-        ? 'state-' + rawState.toLowerCase()
-        : 'state-unknown';
+    var rawState = !isNil(state.wp_state) ? String(state.wp_state).toUpperCase() : '---';
+    var stateClass = rawState === 'HEIZUNG' || rawState === 'WARMWASSER' ||
+      rawState === 'BEREIT' || rawState === 'STANDBY'
+      ? 'state-' + rawState.toLowerCase()
+      : 'state-unknown';
 
+    document.querySelectorAll('[data-bind-state]').forEach(function (el) {
       el.textContent = rawState;
       el.classList.remove.apply(el.classList, STATE_CLASSES);
       el.classList.add(stateClass);
+    });
+
+    document.querySelectorAll('[data-bind-state-sub]').forEach(function (el) {
+      el.textContent = getStateSubText(state, rawState);
     });
   }
 
   function applyState(state) {
     applyTextBindings(state);
+    applyBooleanTextBindings(state);
     applyBinaryBindings(state, 'data-bind-bool', false);
     applyBinaryBindings(state, 'data-bind-alarm', true);
     applyStateBindings(state);
