@@ -1,212 +1,321 @@
-# wp-state-machine
+# RATAE — Wärmepumpen-State-Machine
 
-**Version:** 0.1  
-**Status:** Phase 1 — DRY_RUN aktiv, kein echter CMI-Schreibzugriff  
-**Deploy-Target:** FHEM-Server `192.168.178.10` (Debian 12)
+Zentrale Python-basierte Steuerung für private Wärmepumpenanlage (Heizkreis + Warmwasser).
+**Version 0.1** | Phase 1 (DRY_RUN aktiv) | 368 Tests grün | Python 3.14 + FastAPI + Modbus-Slave
 
-Zentrale State Machine fuer die Waermepumpe (CMI 192.168.178.45). Einzige Komponente
-die TCP/IP zum CMI macht. Alle anderen Systeme (FHEM, HA, Telegram) reden mit ihr.
+---
+
+## Status
+
+| Aspekt | Status |
+|--------|--------|
+| **Tests** | 368 passing |
+| **DRY_RUN** | aktiv (Live-Writes blockiert bis `DRY_RUN=false`) |
+| **Modbus-Slave** | Port 5020 aktiv, primäre Datenquelle |
+| **Postgres-Telemetrie** | aktiv auf nucthp (.10), 5-min-Snapshots |
+| **Web-UI** | FastAPI auf Port 8765 |
+| **Phase** | 1 — Datenerfassung + Read-Only-API validieren |
+
+---
 
 ## Architektur
 
 ```
-FHEM / HA / Telegram / ThoPAS
-           |
-    WP STATE MACHINE  (REST + MQTT + Web-UI)
-           |
-          CMI  192.168.178.45  (einziger Zugriff)
+UVR1611 (Heizung) + CMI (Controller)
+          |
+      CAN-Bus (UVR → CMI-NetzOutput)
+          |
+         CMI 192.168.178.45
+          |
+   [Modbus-TCP Push] ← primär
+   [Web-Scraper]    ← fallback (wenn Modbus > 300s stale)
+          |
+    WP State Machine (Mac .3)
+          |
+    ┌─────┼─────┐
+    |     |     |
+  REST  SSE  Postgres
+  :8765 /stream  (telemetry + audit)
+    |     |     |
+   [Web-UI] [Logger] [Dashboard]
 ```
 
-## Schnell-Start (lokale Entwicklung)
+**Datenfluss:**
+- **CMI** ist Modbus-Master, schreibt aktiv FC16 (Registers) + FC05 (Coils) an Port 5020
+- **State Machine** dekodiert Modbus, speichert in Postgres, exposiert REST + SSE
+- **Web-Scraper** startet nur wenn Modbus > 300s inaktiv (Fallback-Pfad)
 
-Voraussetzung: Python 3.11+ via Homebrew (`/opt/homebrew/bin/python3`).
+---
 
+## Quickstart
+
+### Voraussetzungen
+- Python 3.14+
+- Postgres 17+ (asyncpg)
+- Homebrew Python an `/opt/homebrew/bin/python3`
+- CMI 192.168.178.45 erreichbar
+
+### Installation
 ```bash
-# Abhaengigkeiten installieren (kein venv noetig)
+git clone <repo> wp-state-machine && cd wp-state-machine
 pip install --break-system-packages -r requirements.txt
 
-# Oder als editierbares Paket
+# oder editierbar:
 pip install --break-system-packages -e .
-
-# Env-File anlegen
-cp .env.example .env
-# .env anpassen (Postgres-URL, Telegram-Token etc.)
-
-# Config anlegen
-cp config.example.toml config.toml
-
-# Starten
-python3 -m wp_state_machine
-
-# Tests ausfuehren
-pytest tests/ -v
-
-# Linting
-ruff check src/
-black --check src/
 ```
 
-## DRY_RUN-Modus
+### Konfiguration
+```bash
+cp .env.example .env
+# Anpassen: CMI_USER, CMI_PASS, WPSM_POSTGRES_URL, TELEGRAM_TOKEN
+cp config.example.toml config.toml
+```
 
-Phase 1 ist DRY_RUN by default. Kein echter CMI-Schreibzugriff.  
-Im Web-UI erscheint ein sichtbarer "DRY-RUN"-Banner.  
-Zum Deaktivieren: `DRY_RUN=false` in `.env` setzen — **nur nach expliziter Freigabe!**
+### Ausführung
+```bash
+# DRY_RUN (default)
+python3 -m wp_state_machine
+
+# oder mit angepasstem Port:
+python3 -m wp_state_machine --port 8765
+
+# LIVE-Modus (VORSICHT!)
+python3 -m wp_state_machine --dry-run-off
+```
+
+### Tests
+```bash
+pytest tests/ -v
+pytest --cov=wp_state_machine tests/
+```
+
+---
 
 ## Konfiguration
 
-Alle Secrets in `.env` (nicht einchecken, in `.gitignore`).  
-Strukturierte Config in `config.toml` (aus `config.example.toml`).
-
-## Abhaengigkeiten
-
-Installiert via `pip install --break-system-packages -r requirements.txt`.  
-Kein virtualenv. Kein Docker. System-Python Homebrew.
-
-## Deploy
-
-Deploy-Skript und systemd-Unit unter `deploy/`:
-
-```bash
-# Auf .10 deployen (SSH-Key erforderlich)
-bash deploy/deploy.sh
+### Umgebungsvariablen (`.env`)
+```env
+DRY_RUN=true                 # Default: Schreib-Calls geloggt, nicht ausgeführt
+LOG_LEVEL=INFO
+PORT=8765
+CMI_HOST=192.168.178.45
+CMI_USER=admin
+CMI_PASS=admin
+WPSM_POSTGRES_URL=postgresql://wp_sm:PASS@192.168.178.10/wp_state_machine
+TELEGRAM_TOKEN=...
+TELEGRAM_CHAT_ID=...
+MODBUS_PORT=5020
 ```
 
-Postgres-Init: `bash deploy/postgres-init.sh`
-
-## Coverage
-
-Tests laufen gegen Fixture-Snapshots aus `tests/fixtures/` (kein Live-CMI).
-
-```bash
-pytest --cov=wp_state_machine --cov-report=term-missing tests/
-```
-
-## Playwright Setup (SPA-Scraping)
-
-Fuer JavaScript-rendernde Seiten (CMI-Web-UI, SPAs wo curl nur Skelett liefert):
-
-```bash
-# Playwright installieren (system-pip, kein venv)
-python3 -m pip install --break-system-packages playwright
-
-# Chromium-Browser herunterladen (~250 MB, landet in ~/Library/Caches/ms-playwright/)
-python3 -m playwright install chromium
-
-# Verifizieren
-python3 -c "
-from playwright.sync_api import sync_playwright
-with sync_playwright() as p:
-    b = p.chromium.launch(headless=True)
-    page = b.new_page()
-    page.goto('https://example.com')
-    print(page.title())
-    b.close()
-"
-# Erwartet: Example Domain
-```
-
-**Versionen (2026-05-06):** Playwright 1.59.0, Chrome for Testing 147.0.7727.15 (chromium-1217).
-Disk-Verbrauch: ~260 MB in `~/Library/Caches/ms-playwright/`.
-
-### CMI Playwright Probe
-
-`tools/cmi_playwright_probe.py` liest CoE-Output-Konfigurationen vom CMI (192.168.178.45):
-
-```bash
-python3 tools/cmi_playwright_probe.py
-# Ergebnis: tools/cmi_e_outputs.json
-```
-
-**Architektur-Hinweis:** Die CMI-Web-UI ist eine SPA (cmi142.js / jQuery). Der
-Detail-Endpunkt fuer E-Outputs ist `settings_output-E.cgi?cmioutput=<X>` —
-er liefert ein HTML-Fieldset direkt (kein weiteres AJAX). Das Skript nutzt
-Playwright fuer HTTP-Auth und kuenftige echte SPA-Targets. Rate-Limit: 5s
-zwischen Requests, bei HTTP 429 Abbruch + 60s Pause.
-
-## Modbus-Ingest (primaere Datenquelle)
-
-Das CMI agiert als Modbus-Master und schreibt aktiv via Modbus-TCP an den Mac-Slave.
-Modbus hat Vorrang vor Web-Scraper und JSON-Poller (direkter Push, keine Polling-Latenz).
-
-### CMI-Seite einrichten
-
-Die CMI-Konfiguration erfolgt einmalig mit den Tools:
-
-```bash
-# Analog-Outputs M1..M16 auf Mac-IP mappen
-python3 tools/cmi_bulk_modbus_setup.py
-
-# Digital-Outputs M-1..M-16 mappen
-python3 tools/cmi_bulk_modbus_digital.py
-```
-
-Konfiguration CMI-Seite:
-- Ziel-IP: `192.168.178.3` (Mac)
-- Slave-ID: 1
-- Port: 5020 (Standard; in `config.toml` aenderbar)
-- Analog: FC16 (Write Multiple Registers), Faktor 10, Big-Endian
-- Digital: FC05 (Write Single Coil)
-
-### Mac-Slave
-
-Der Slave startet automatisch beim App-Start wenn `modbus_enabled = true` in `config.toml`:
-
+### Strukturierte Config (`config.toml`)
 ```toml
 [modbus]
 enabled = true
 port = 5020
 slave_id = 1
-```
 
-Sensor-Offsets fuer spaetere Kalibrierung (erst aktivieren wenn gemessen):
-
-```toml
 [modbus.sensor_offsets]
-vorlauf = -4.0     # Vorlauf-Sensor misst 4 Grad zu hoch
-ruecklauf = -4.0
+vorlauf = 0.0        # Sensor-Kalibrierung (offset)
+ruecklauf = 0.0
 ```
 
-### Register-Belegung
+---
 
-| Register | Sensor | Typ | Faktor |
-|----------|--------|-----|--------|
-| 0 | Aussentemperatur | int16 | /10 |
-| 1 | Vorlauf | int16 | /10 |
-| 2 | Ruecklauf | int16 | /10 |
-| 3 | Warmwasser | int16 | /10 |
-| 4 | (ungenutzt) | — | — |
-| 5 | TRaum1 | int16 | /10 |
-| 6 | Heissgas | int16 | /10 |
-| 7 | Fluessigkeit | int16 | /10 |
-| 8 | Saugleitung | int16 | /10 |
-| 9-10 | BetrStdVerdichter | uint32 BE | — |
-| 10-11 | SchaltungenVerdichter | uint32 BE | — |
-| 11-12 | BetrStdHeizstabFB | uint32 BE | — |
-| 12-13 | BetrStdHeizstabWW | uint32 BE | — |
-| 13 | MessageFB | uint16 | — |
-| 14 | MessageWW | uint16 | — |
-| 15 | VorlaufSoll | int16 | /10 |
+## API-Endpunkte
 
-Coils 0..15: Phasenwaechter, Verdichter, ND/HD-Schalter, Pumpen, Ventile, Heizstaebe.
+### Read-Only
+- **GET** `/` — Web-UI (HTML)
+- **GET** `/health` — Status (dry_run, modbus_ok, postgres_ok, last_update)
+- **GET** `/state` — Aktueller WP-State + alle Sensoren
+- **GET** `/telemetry` — aktuell Sensor-Snapshot
+- **GET** `/functions/{id}` — F:1 (Heizkreis) oder F:9 (Warmwasser)
+- **GET** `/stream` — Server-Sent-Events (3s-Tick, Live-Updates)
 
-### Deploy auf .10 (Port-Bindung)
+### Write (alle DRY_RUN-geschützt + Whitelist)
+- **POST** `/functions/F1/betriebsart` — 1..7 (Standby, Zeit, Normal, etc.)
+- **POST** `/functions/F1/normalsoll` — 10..30 °C
+- **POST** `/functions/F1/absenksoll` — 5..25 °C
+- **POST** `/functions/F9/wwsoll` — 30..70 °C
+- **POST** `/functions/F9/start` — WW-Boost (Legionellenschutz)
+- **POST** `/functions/F9/stop` — WW-Boost stoppen
 
-Port 5020 benoetigt keine Root-Rechte.  
-Falls spaeter Port 502 (Standard-Modbus) genutzt werden soll:
-`sudo setcap 'cap_net_bind_service=+ep' /opt/homebrew/bin/python3.xx`  
-oder einfacher: CMI weiterhin auf 5020 lassen.
+Alle Schreib-Calls werden geloggt + in `function_audit`-Tabelle dokumentiert.
 
-### Debug-Tool
+---
 
+## Modbus-Register
+
+### Holding-Register (Analog)
+
+| Addr | Sensor | Typ | Faktor | Bemerkung |
+|------|--------|-----|--------|-----------|
+| 1 | Aussentemperatur | int16 | 0.01 | M1 (C1) |
+| 2 | Vorlauf | int16 | 0.01 | M2 (C2) |
+| 3 | Rücklauf | int16 | 0.01 | M3 (C3) |
+| 4 | Warmwasser | int16 | 0.01 | M4 (C4) |
+| 6 | TRaum1 | int16 | 0.01 | M6 (C6) |
+| 7 | Heissgas | int16 | 0.01 | M7 (C7) |
+| 8 | Flüssigkeit | int16 | 0.01 | M8 (C8) |
+| 9 | Saugleitung | int16 | 0.01 | M9 (C9) |
+| 10–11 | BetrStdVerdichter | uint32 | 1.0 | 2 Register |
+| 12–13 | SchaltungenVerdichter | uint32 | 1.0 | 2 Register |
+| 14–15 | BetrStdHeizstabFB | uint32 | 1.0 | 2 Register |
+| 16–17 | BetrStdHeizstabWW | uint32 | 1.0 | 2 Register |
+| 18 | MessageFB | uint16 | 1.0 | |
+| 19 | MessageWW | uint16 | 1.0 | |
+| 20 | VorlaufSoll | int16 | 0.01 | |
+
+**Coils** (Digital): 1–16 (Phasenwaechter, Verdichter, ND/HD, Pumpen, Ventile, Heizstaebe)
+
+**Adress-Schema:** CMI-Seite `outmag=N` → Wire-Adresse `N+1` (1-based).
+
+---
+
+## Sicherheit
+
+### Whitelist (safety.py)
+
+Nur folgende Adressen + Wertebereiche sind erlaubt:
+
+| Adresse | Funktion | Wert | Beschreibung |
+|---------|----------|------|--------------|
+| `3E9001301C` | F:1 | 1–7 | Betriebsart (Standby..Feiertag) |
+| `3EB001300C` | F:1 | 10–30 °C | Normal-Soll Heizkreis |
+| `3EB001300D` | F:1 | 5–25 °C | Absenk-Soll Heizkreis |
+| `3EB0023118` | F:9 | 30–70 °C | WW-Soll (Legionellenschutz) |
+| `3E80093125` | F:9 | 1 | WW-Boost START |
+| `3E80093126` | F:9 | 1 | WW-Boost STOP |
+
+### Verboten
+- `3E91*` — direkte Aktor-Ausgänge A1–A10 (umgehen UVR-Logik)
+- `3E80153125`, `3E80153126` — Heizstab-Direct (nur via F:9 mit Eskalation)
+
+### Sicherheits-Imperative
+
+1. **DRY_RUN=true** (default) — Writes werden geloggt, nicht ausgeführt
+2. **Whitelist-Enforcement** — `check_write()` entscheidet alle Writes
+3. **Audit-Logging** — jeder Versuch in `function_audit`-Tabelle
+4. **Telegram-Alarm** — bei jedem LIVE-Write
+5. **Cool-Down** — Rate-Limit 1 req/sec gegen CMI-Überlast
+
+---
+
+## Repo-Layout
+
+```
+wp-state-machine/
+├── src/wp_state_machine/
+│   ├── __main__.py           # Startup (FastAPI + Poll-Loop + Heartbeat)
+│   ├── api/rest.py           # REST-Endpunkte + AppState
+│   ├── ingest/
+│   │   ├── modbus_slave.py   # Modbus-TCP-Slave (primäre Datenquelle)
+│   │   ├── web_scraper.py    # CMI-Web-UI-Scraper (Fallback)
+│   │   └── cmi_writer.py     # HTTP-Write-Pfad ans CMI (menupage.cgi)
+│   ├── core/models.py         # Pydantic-Modelle (Sensoren, WPState)
+│   ├── safety.py              # Whitelist-Enforcement
+│   ├── storage/
+│   │   ├── postgres.py        # asyncpg-Adapter
+│   │   └── schema.sql         # DB-Schema (telemetry, function_audit)
+│   ├── automation/
+│   │   ├── snapshot_logger.py # 5-min-Telemetrie-Snapshots
+│   │   └── coil_audit.py      # Alarm/Verdichter-Edge-Handler
+│   └── config.py              # Config-Loader (.env + config.toml)
+├── tests/
+│   ├── test_modbus_slave.py   # Dekodierungs-Tests (decode_register/coil)
+│   ├── test_api.py            # REST-Endpoint-Tests
+│   ├── test_safety.py         # Whitelist-Tests
+│   └── fixtures/              # Snapshot-Daten
+├── tools/
+│   ├── cmi_bulk_modbus_setup.py      # Analog-Output-Mapping (M1..M16)
+│   ├── cmi_bulk_modbus_digital.py    # Digital-Output-Mapping (M-1..M-16)
+│   ├── cmi_verify_full.py            # Verifizierung der CMI-Config
+│   ├── modbus_test_slave.py          # Standalone-Debug-Slave
+│   └── plausibility_check.py         # Sensor-Plausibilitätsprüfung
+├── docs/
+│   ├── CMI-WRITE-API.md       # Adressen-Tabelle + Verbotene-Adressen
+│   └── ARCHITECTURE.md        # Detaillierte Architektur
+├── deploy/
+│   ├── deploy.sh              # Push auf .10 (SSH + systemd-reload)
+│   └── postgres-init.sh       # DB-Initialisierung
+├── .env.example               # Template
+├── config.example.toml        # Template
+├── requirements.txt           # Dependencies (FastAPI, pymodbus 3.8, asyncpg)
+└── README.md                  # Diese Datei
+```
+
+---
+
+## Tools
+
+### CMI-Setup (einmalig, vor LIVE)
 ```bash
-# Standalone-Slave zum Testen (zeigt alle CMI-Writes)
-python3 tools/modbus_test_slave.py
+python3 tools/cmi_bulk_modbus_setup.py      # Analog-Outputs auf .3 mappen
+python3 tools/cmi_bulk_modbus_digital.py    # Digital-Outputs auf .3 mappen
+python3 tools/cmi_verify_full.py            # Konfiguration verifizieren
 ```
 
-## Sicherheits-Imperative
+### Debugging
+```bash
+# Standalone-Modbus-Slave (zeigt alle CMI-Writes)
+python3 tools/modbus_test_slave.py
 
-1. Schreiben nur via menupage.cgi (Browser-Emulation), nie JSON-API-writes.
-2. Funktionen schalten, nicht Aktoren.
-3. Heizstaebe A8/A9 sind DANGEROUS — direkte Schaltung gesperrt.
-4. DRY_RUN=True bis explizite Freigabe.
-5. CMI Rate-Limit: 1 req/sek max, 1/min beim Polling.
+# Sensor-Plausibilität prüfen
+python3 tools/plausibility_check.py
+```
+
+---
+
+## Bekannte Limitierungen
+
+1. **DRY_RUN noch nicht scharf** — Phase 1. Live-Mode wird später freigegeben.
+2. **Web-Scraper ↔ Modbus Revival** — Bei Modbus-Wiederherstellung nach Stale kann es zu Race-Conditions kommen (Edge-Case).
+3. **Telemetry-Insert 32 Parameter** — `insert_telemetry()` hat 32 positional-$-Variablen in SQL (Wartungs-Risiko, Refactoring pending).
+4. **Keine echten Integration-Tests** — nur Unit-Tests gegen Fixtures. Live-CMI-Tests folgen nach Phase 1 Abnahme.
+5. **Modbus Offset-Kalibrierung** — sensor_offsets in config.toml sind placeholder, erst nach Feldmessung setzen.
+
+---
+
+## Deployment
+
+### Lokal (Mac)
+```bash
+# Port 5020 braucht keine Root-Rechte (< 1024)
+python3 -m wp_state_machine --port 8765
+```
+
+### Remote (.10, Debian 12)
+```bash
+cd <repo>
+bash deploy/deploy.sh          # SSH-basiert, systemd-reload
+bash deploy/postgres-init.sh   # DB-Schema initialisieren
+```
+
+Postgres-Schema wird automatisch beim Startup angewendet (falls `WPSM_POSTGRES_URL` gesetzt).
+
+---
+
+## Lizenz
+
+[**PolyForm Noncommercial 1.0.0**](https://polyformproject.org/licenses/noncommercial/1.0.0) — siehe [`LICENSE`](LICENSE).
+
+Heisst: Privat, fuer Forschung, Bildung, Hobby, gemeinnuetzige Organisationen — frei nutzbar.
+**Kommerzielle Nutzung untersagt.**
+
+---
+
+## Support
+
+**Works for me. Fork if you need changes.**
+
+Es gibt keinen Support. Issues werden nicht beantwortet, Pull Requests nicht reviewed,
+Bugs nicht gefixt. Schaeden durch Nutzung dieser Software liegen ausschliesslich beim
+Anwender — keine Garantie, keine Haftung. Siehe [`LICENSE`](LICENSE) Abschnitt
+"No Liability".
+
+Wenn du was anderes brauchst: fork das Repo und mach es selber.
+
+---
+
+## Projekt
+
+**RATAE** — Codename der Waermepumpen-Steuerung der Anlage Pierschke (private installation).
