@@ -208,286 +208,263 @@ button {
   })();
 </script>
 <!-- /theme-switcher -->
-<!-- details-drawer -->
+<!-- tab-bar for dashboard/details -->
 <style>
-  #details-trigger {
-    position: fixed;
-    top: 12px;
-    left: 220px;
-    z-index: 9999;
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 999px;
-    background: rgba(8,10,16,0.78);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    color: rgba(255,255,255,0.92);
-    font: 11px/1.2 "JetBrains Mono", ui-monospace, monospace;
-    padding: 6px 12px;
-    cursor: pointer;
-  }
-  #details-trigger:hover { border-color: rgba(255,255,255,0.28); }
-  #details-overlay {
-    position: fixed; inset: 0; z-index: 10000;
-    background: rgba(0,0,0,0.55);
-    backdrop-filter: blur(4px);
-    opacity: 0; pointer-events: none;
-    transition: opacity 0.22s ease;
-  }
-  #details-overlay.open { opacity: 1; pointer-events: auto; }
-  #details-drawer {
-    position: fixed; top: 0; right: 0; bottom: 0; z-index: 10001;
-    width: min(480px, 100vw);
-    background: #0b0f15;
-    color: #e7ebf2;
-    transform: translateX(100%);
-    transition: transform 0.28s cubic-bezier(.2,.85,.2,1);
-    overflow-y: auto;
-    border-left: 1px solid rgba(255,255,255,0.08);
-    box-shadow: -24px 0 60px rgba(0,0,0,0.6);
-    font: 13px/1.45 "JetBrains Mono", ui-monospace, monospace;
-  }
-  #details-overlay.open + #details-drawer,
-  #details-drawer.open { transform: translateX(0); }
-  #details-drawer header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 18px 22px; border-bottom: 1px solid rgba(255,255,255,0.08);
-    font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase;
-    color: #9aa3b3;
-    position: sticky; top: 0;
-    background: linear-gradient(180deg, #0b0f15 80%, rgba(11,15,21,0));
+  .tab-bar {
+    display: flex;
+    gap: 8px;
+    padding: 8px;
+    width: min(1180px, calc(100% - 32px));
+    margin: 24px auto 0;
+    position: relative;
     z-index: 1;
   }
-  #details-drawer header strong { color: #e7ebf2; letter-spacing: 0.04em; }
-  #details-close {
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 6px; background: transparent; color: inherit;
-    font: inherit; padding: 4px 9px; cursor: pointer;
+  .tab-btn {
+    padding: 10px 18px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.06);
+    color: var(--muted);
+    font: 12px/1 Inter,Geist,sans-serif;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
   }
-  #details-close:hover { border-color: rgba(255,255,255,0.32); }
-  #details-drawer section { padding: 14px 22px 18px; }
-  #details-drawer h3 {
-    margin: 0 0 8px; font-size: 10px; letter-spacing: 0.22em;
-    text-transform: uppercase; color: #6f7886; font-weight: 500;
+  .tab-btn:hover {
+    border-color: rgba(255,255,255,0.12);
   }
-  #details-drawer .row {
-    display: grid; grid-template-columns: 1fr auto;
-    gap: 12px; padding: 6px 0;
-    border-bottom: 1px dashed rgba(255,255,255,0.06);
+  .tab-btn.active {
+    background: rgba(184,241,212,0.92);
+    color: #09160f;
+    border-color: rgba(184,241,212,0.92);
+  }
+  .detail-section {
+    display: grid;
+    gap: 14px;
+  }
+  .detail-card {
+    padding: 20px;
+    border-radius: 20px;
+    border: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(255,255,255,.11), rgba(255,255,255,.055));
+    backdrop-filter: blur(28px) saturate(140%);
+    -webkit-backdrop-filter: blur(28px) saturate(140%);
+    box-shadow: var(--shadow);
+  }
+  .detail-card h3 {
+    margin: 0 0 14px;
     font-size: 12px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
   }
-  #details-drawer .row:last-child { border-bottom: 0; }
-  #details-drawer .name { color: #c2cad6; }
-  #details-drawer .val { color: #e7ebf2; font-variant-numeric: tabular-nums; }
-  #details-drawer .val.on { color: #5fff8e; }
-  #details-drawer .val.off { color: #6c7480; }
-  #details-drawer .val.alarm { color: #ff5b5b; }
-  #details-drawer .ref {
-    display: inline-block; margin-left: 8px;
-    color: #4d5663; font-size: 10px; letter-spacing: 0.06em;
+  .detail-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px dashed rgba(255,255,255,0.06);
+    font-size: 13px;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
   }
-  @media print { #details-trigger, #details-overlay, #details-drawer { display: none !important; } }
+  .detail-row:last-child {
+    border-bottom: 0;
+  }
+  .detail-name {
+    color: var(--muted);
+  }
+  .detail-val {
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .detail-val.on {
+    color: var(--mint);
+  }
+  .detail-val.off {
+    color: rgba(255,255,255,0.4);
+  }
+  .detail-val.alarm {
+    color: var(--alert);
+  }
+  .detail-ref {
+    display: inline-block;
+    margin-left: 8px;
+    color: rgba(255,255,255,0.2);
+    font-size: 11px;
+  }
 </style>
-<button id="details-trigger" type="button">Details</button>
-<div id="details-overlay"></div>
-<aside id="details-drawer" aria-hidden="true">
-  <header>
-    <span><strong>Alle Werte</strong> · Live</span>
-    <button id="details-close" type="button">×</button>
-  </header>
-  <section>
-    <h3>Temperaturen</h3>
-    <div class="row"><span class="name">Aussen <span class="ref">S1</span></span><span class="val" data-detail-temp="aussen">---</span></div>
-    <div class="row"><span class="name">Vorlauf Puffer <span class="ref">S2</span></span><span class="val" data-detail-temp="vorlauf">---</span></div>
-    <div class="row"><span class="name">Ruecklauf FBH <span class="ref">S3</span></span><span class="val" data-detail-temp="ruecklauf">---</span></div>
-    <div class="row"><span class="name">Warmwasser <span class="ref">S4</span></span><span class="val" data-detail-temp="warmwasser">---</span></div>
-    <div class="row"><span class="name">Heissgas <span class="ref">S7</span></span><span class="val" data-detail-temp="heissgas">---</span></div>
-    <div class="row"><span class="name">Fluessigkeit <span class="ref">S8</span></span><span class="val" data-detail-temp="fluessigkeit">---</span></div>
-    <div class="row"><span class="name">Saugleitung <span class="ref">S9</span></span><span class="val" data-detail-temp="saugleitung">---</span></div>
-    <div class="row"><span class="name">Raum-Soll eff.</span><span class="val" data-detail-temp="traum1">---</span></div>
-    <div class="row"><span class="name">Vorlauf-Soll</span><span class="val" data-detail-temp="vorlauf_soll">---</span></div>
-  </section>
-  <section>
-    <h3>Eingaenge / Schalter</h3>
-    <div class="row"><span class="name">Phasenwaechter <span class="ref">S10</span></span><span class="val" data-detail-bool="phasenwaechter">---</span></div>
-    <div class="row"><span class="name">Verdichter-Freigabe <span class="ref">S11</span></span><span class="val" data-detail-bool="verdichter_freigabe">---</span></div>
-    <div class="row"><span class="name">ND-Schalter 1 <span class="ref">S12</span></span><span class="val" data-detail-bool="nd_schalter1">---</span></div>
-    <div class="row"><span class="name">HD-Schalter <span class="ref">S13</span></span><span class="val" data-detail-bool="hd_schalter">---</span></div>
-    <div class="row"><span class="name">ND-Schalter 2 <span class="ref">S14</span></span><span class="val" data-detail-bool="nd_schalter2">---</span></div>
-  </section>
-  <section>
-    <h3>Ausgaenge / Aktoren</h3>
-    <div class="row"><span class="name">FBH-Pumpe <span class="ref">A1</span></span><span class="val" data-detail-bool="pumpe_hzkr">---</span></div>
-    <div class="row"><span class="name">Ladepumpe <span class="ref">A2</span></span><span class="val" data-detail-bool="ladepumpe">---</span></div>
-    <div class="row"><span class="name">Verdichter <span class="ref">A3</span></span><span class="val" data-detail-bool="verdichter">---</span></div>
-    <div class="row"><span class="name">MVR0407 FL1 <span class="ref">A4</span></span><span class="val" data-detail-bool="mvr0407_fl1">---</span></div>
-    <div class="row"><span class="name">Alarm <span class="ref">A5</span></span><span class="val" data-detail-alarm="alarm">---</span></div>
-    <div class="row"><span class="name">MVR0407 Nach2 <span class="ref">A6</span></span><span class="val" data-detail-bool="mvr0407_nach2">---</span></div>
-    <div class="row"><span class="name">Ventil WW <span class="ref">A7</span></span><span class="val" data-detail-bool="ventil_ww">---</span></div>
-    <div class="row"><span class="name">Heizstab HZ <span class="ref">A8</span></span><span class="val" data-detail-alarm="heizstab_hz">---</span></div>
-    <div class="row"><span class="name">Heizstab WW <span class="ref">A9</span></span><span class="val" data-detail-alarm="heizstab_ww">---</span></div>
-    <div class="row"><span class="name">Zirkulationspumpe <span class="ref">A10</span></span><span class="val" data-detail-bool="pumpe_zirku">---</span></div>
-    <div class="row"><span class="name">Meldung Heizung</span><span class="val" data-detail-bool="meldung_heizung">---</span></div>
-  </section>
-  <section>
-    <h3>Zaehler</h3>
-    <div class="row"><span class="name">Betriebsstd. Verdichter</span><span class="val" data-detail-int="betr_std_verdichter">---</span></div>
-    <div class="row"><span class="name">Schaltungen Verdichter</span><span class="val" data-detail-int="schaltungen_verdichter">---</span></div>
-    <div class="row"><span class="name">Betriebsstd. Heizstab FB</span><span class="val" data-detail-int="betr_std_heizstab_fb">---</span></div>
-    <div class="row"><span class="name">Betriebsstd. Heizstab WW</span><span class="val" data-detail-int="betr_std_heizstab_ww">---</span></div>
-  </section>
-  <section>
-    <h3>Status / Funktionen</h3>
-    <div class="row"><span class="name">Message Heizung</span><span class="val" data-detail-int="message_fb">---</span></div>
-    <div class="row"><span class="name">Message WW</span><span class="val" data-detail-int="message_ww">---</span></div>
-    <div class="row"><span class="name">Betriebsart F:1</span><span class="val" data-detail-mode="betriebsart">---</span></div>
-    <div class="row"><span class="name">WP-State</span><span class="val" data-detail-state>---</span></div>
-  </section>
-</aside>
-<script>
-  (function () {
-    var trigger = document.getElementById('details-trigger');
-    var overlay = document.getElementById('details-overlay');
-    var drawer = document.getElementById('details-drawer');
-    var close = document.getElementById('details-close');
-    if (!trigger || !drawer) return;
-    function open() { overlay.classList.add('open'); drawer.classList.add('open'); drawer.setAttribute('aria-hidden', 'false'); }
-    function shut() { overlay.classList.remove('open'); drawer.classList.remove('open'); drawer.setAttribute('aria-hidden', 'true'); }
-    trigger.addEventListener('click', open);
-    close.addEventListener('click', shut);
-    overlay.addEventListener('click', shut);
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') shut(); });
-
-    var BETRIEBSART_NAMES = {1:'Standby',2:'Zeit/Auto',3:'Normal',4:'Abgesenkt',5:'Party',6:'Urlaub',7:'Feiertag'};
-
-    function fmtTemp(v) {
-      if (v === null || v === undefined) return '---';
-      var n = Number(v);
-      if (Number.isNaN(n)) return '---';
-      return (n >= 0 ? '+' : '') + n.toFixed(1) + '°';
-    }
-    function fmtBool(v, alarm) {
-      if (v === null || v === undefined) return '---';
-      if (alarm) return v ? 'AKTIV' : 'aus';
-      return v ? 'an' : 'aus';
-    }
-
-    async function update() {
-      try {
-        var r = await fetch('/state', { cache: 'no-store' });
-        if (!r.ok) return;
-        var data = await r.json();
-        var s = data.sensoren || {};
-        drawer.querySelectorAll('[data-detail-temp]').forEach(function (el) {
-          el.textContent = fmtTemp(s[el.dataset.detailTemp]);
-        });
-        drawer.querySelectorAll('[data-detail-bool]').forEach(function (el) {
-          var v = s[el.dataset.detailBool];
-          el.textContent = fmtBool(v, false);
-          el.classList.toggle('on', v === true);
-          el.classList.toggle('off', v === false);
-        });
-        drawer.querySelectorAll('[data-detail-alarm]').forEach(function (el) {
-          var v = s[el.dataset.detailAlarm];
-          el.textContent = fmtBool(v, true);
-          el.classList.toggle('alarm', v === true);
-          el.classList.toggle('off', v === false);
-        });
-        drawer.querySelectorAll('[data-detail-int]').forEach(function (el) {
-          var v = s[el.dataset.detailInt];
-          el.textContent = (v === null || v === undefined) ? '---' : String(v);
-        });
-        var modeEl = drawer.querySelector('[data-detail-mode]');
-        if (modeEl) {
-          var v = s.betriebsart;
-          modeEl.textContent = (v === null || v === undefined) ? '---' : (v + ' — ' + (BETRIEBSART_NAMES[v] || '?'));
-        }
-        var stateEl = drawer.querySelector('[data-detail-state]');
-        if (stateEl) stateEl.textContent = data.wp_state || data.state || '---';
-      } catch (e) {}
-    }
-    update();
-    setInterval(update, 5000);
-  })();
-</script>
-<!-- /details-drawer -->
+<div class="tab-bar">
+  <button class="tab-btn active" id="tab-btn-dashboard" type="button">Dashboard</button>
+  <button class="tab-btn" id="tab-btn-details" type="button">Details</button>
+</div>
+<!-- /tab-bar -->
 
 
 <main class="shell">
-  <section class="banner glass">DRY-RUN aktiv</section>
+  <section id="tab-dashboard">
+    <section class="banner glass">DRY-RUN aktiv</section>
 
-  <header class="header glass">
-    <div class="brand">
-      <div class="logo">RATAE</div>
-      <div class="sub">WP State Machine</div>
-    </div>
-    <div class="pill"><span class="dot">●</span> MODBUS ONLINE</div>
-  </header>
-
-  <section class="hero glass">
-    <div class="eyebrow">Aktueller Zustand</div>
-    <div class="state" data-bind-state>HEIZUNG</div>
-    <div class="state-sub" data-bind-state-sub></div>
-  </section>
-
-  <section class="grid-4">
-    <article class="tile glass live">
-      <div class="label">Aussen</div>
-      <div class="value" data-bind="aussen" data-bind-format="temp">+5.2<small>°</small></div>
-    </article>
-    <article class="tile glass warm">
-      <div class="label">Warmwasser</div>
-      <div class="value" data-bind="warmwasser" data-bind-format="temp-no-sign">52.8<small>°</small></div>
-    </article>
-    <article class="tile glass">
-      <div class="label">Vorlauf Puffer</div>
-      <div class="value" data-bind="vorlauf" data-bind-format="temp-no-sign">36.4<small>°</small></div>
-    </article>
-    <article class="tile glass">
-      <div class="label">Ruecklauf FBH</div>
-      <div class="value" data-bind="ruecklauf" data-bind-format="temp-no-sign">28.1<small>°</small></div>
-    </article>
-  </section>
-
-  <section class="grid-2">
-    <article class="panel glass">
-      <div class="panel-head">
-        <div class="title">IO Grid</div>
-        <div class="sub mono">5 Zeilen / 6 Aktoren</div>
+    <header class="header glass">
+      <div class="brand">
+        <div class="logo">RATAE</div>
+        <div class="sub">WP State Machine</div>
       </div>
-      <div class="io-grid mono">
-        <div class="io-row"><span>Alarm <small>A5</small></span><span class="io-pill" data-bind-alarm="alarm" data-bind-text="alarm:AKTIV|clear">---</span></div>
-        <div class="io-row"><span>Heizkreispumpe <small>A1</small></span><span class="io-pill" data-bind-bool="pumpe_hzkr" data-bind-text="pumpe_hzkr:an|aus">---</span></div>
-        <div class="io-row"><span>Ladepumpe <small>A2</small></span><span class="io-pill" data-bind-bool="ladepumpe" data-bind-text="ladepumpe:an|aus">---</span></div>
-        <div class="io-row"><span>Warmwasserventil <small>A7</small></span><span class="io-pill" data-bind-bool="ventil_ww" data-bind-text="ventil_ww:WW-Pos|Heiz-Pos">---</span></div>
-        <div class="io-row"><span>Heizstaebe <small>A8 / A9</small></span><span style="display:inline-flex; gap:6px; align-items:center;"><span class="io-pill" data-bind-alarm="heizstab_hz" data-bind-text="heizstab_hz:HZ aktiv|HZ aus">---</span><span class="io-pill" data-bind-alarm="heizstab_ww" data-bind-text="heizstab_ww:WW aktiv|WW aus">---</span></span></div>
-      </div>
-    </article>
+      <div class="pill"><span class="dot">●</span> MODBUS ONLINE</div>
+    </header>
 
-    <article class="panel glass">
-      <div style="display:grid; gap:14px;">
+    <section class="hero glass">
+      <div class="eyebrow">Aktueller Zustand</div>
+      <div class="state" data-bind-state>HEIZUNG</div>
+      <div class="state-sub" data-bind-state-sub></div>
+    </section>
+
+    <section class="grid-4">
+      <article class="tile glass live">
+        <div class="label">Aussen</div>
+        <div class="value" data-bind="aussen" data-bind-format="temp">+5.2<small>°</small></div>
+      </article>
+      <article class="tile glass warm">
+        <div class="label">Warmwasser</div>
+        <div class="value" data-bind="warmwasser" data-bind-format="temp-no-sign">52.8<small>°</small></div>
+      </article>
+      <article class="tile glass">
+        <div class="label">Vorlauf Puffer</div>
+        <div class="value" data-bind="vorlauf" data-bind-format="temp-no-sign">36.4<small>°</small></div>
+      </article>
+      <article class="tile glass">
+        <div class="label">Ruecklauf FBH</div>
+        <div class="value" data-bind="ruecklauf" data-bind-format="temp-no-sign">28.1<small>°</small></div>
+      </article>
+    </section>
+
+    <section class="grid-2">
+      <article class="panel glass">
         <div class="panel-head">
-          <div class="title">Steuerung</div>
-          <div class="pill" style="padding:8px 12px;color:#ffe3d2;"><span style="color:var(--peach);">●</span> bereit</div>
+          <div class="title">IO Grid</div>
+          <div class="sub mono">5 Zeilen / 6 Aktoren</div>
         </div>
-        <div>
-          <label class="label" for="mode" style="display:block; margin-bottom:8px;">Betriebsart</label>
-          <select id="mode" aria-label="Betriebsart">
-            <option selected>Normal</option>
-            <option>Eco</option>
-            <option>Boost</option>
-            <option>Service</option>
-          </select>
+        <div class="io-grid mono">
+          <div class="io-row"><span>Alarm <small>A5</small></span><span class="io-pill" data-bind-alarm="alarm" data-bind-text="alarm:AKTIV|clear">---</span></div>
+          <div class="io-row"><span>Heizkreispumpe <small>A1</small></span><span class="io-pill" data-bind-bool="pumpe_hzkr" data-bind-text="pumpe_hzkr:an|aus">---</span></div>
+          <div class="io-row"><span>Ladepumpe <small>A2</small></span><span class="io-pill" data-bind-bool="ladepumpe" data-bind-text="ladepumpe:an|aus">---</span></div>
+          <div class="io-row"><span>Warmwasserventil <small>A7</small></span><span class="io-pill" data-bind-bool="ventil_ww" data-bind-text="ventil_ww:WW-Pos|Heiz-Pos">---</span></div>
+          <div class="io-row"><span>Heizstaebe <small>A8 / A9</small></span><span style="display:inline-flex; gap:6px; align-items:center;"><span class="io-pill" data-bind-alarm="heizstab_hz" data-bind-text="heizstab_hz:HZ aktiv|HZ aus">---</span><span class="io-pill" data-bind-alarm="heizstab_ww" data-bind-text="heizstab_ww:WW aktiv|WW aus">---</span></span></div>
         </div>
-        <button type="button">Legionellenschutz starten</button>
-      </div>
-    </article>
+      </article>
+
+      <article class="panel glass">
+        <div style="display:grid; gap:14px;">
+          <div class="panel-head">
+            <div class="title">Steuerung</div>
+            <div class="pill" style="padding:8px 12px;color:#ffe3d2;"><span style="color:var(--peach);">●</span> bereit</div>
+          </div>
+          <div>
+            <label class="label" for="mode" style="display:block; margin-bottom:8px;">Betriebsart</label>
+            <select id="mode" aria-label="Betriebsart">
+              <option selected>Normal</option>
+              <option>Eco</option>
+              <option>Boost</option>
+              <option>Service</option>
+            </select>
+          </div>
+          <button type="button">Legionellenschutz starten</button>
+        </div>
+      </article>
+    </section>
+
+    <footer class="footer glass">
+      <span>FE 0.2.0 · BE 0.2.0</span>
+      <span>SSE <span class="ok">● verbunden</span> · 2026-05-09</span>
+    </footer>
   </section>
 
-  <footer class="footer glass">
-    <span>FE 0.2.0 · BE 0.2.0</span>
-    <span>SSE <span class="ok">● verbunden</span> · 2026-05-09</span>
-  </footer>
+  <section id="tab-details" hidden class="shell">
+    <div class="detail-section">
+      <div class="detail-card">
+        <h3>Temperaturen</h3>
+        <div class="detail-row"><span class="detail-name">Aussen <span class="detail-ref">S1</span></span><span class="detail-val" data-bind="aussen" data-bind-format="temp-sign">---</span></div>
+        <div class="detail-row"><span class="detail-name">Vorlauf Puffer <span class="detail-ref">S2</span></span><span class="detail-val" data-bind="vorlauf" data-bind-format="temp-no-sign">---</span></div>
+        <div class="detail-row"><span class="detail-name">Ruecklauf FBH <span class="detail-ref">S3</span></span><span class="detail-val" data-bind="ruecklauf" data-bind-format="temp-no-sign">---</span></div>
+        <div class="detail-row"><span class="detail-name">Warmwasser <span class="detail-ref">S4</span></span><span class="detail-val" data-bind="warmwasser" data-bind-format="temp-no-sign">---</span></div>
+        <div class="detail-row"><span class="detail-name">Heissgas <span class="detail-ref">S7</span></span><span class="detail-val" data-bind="heissgas" data-bind-format="temp-no-sign">---</span></div>
+        <div class="detail-row"><span class="detail-name">Fluessigkeit <span class="detail-ref">S8</span></span><span class="detail-val" data-bind="fluessigkeit" data-bind-format="temp-no-sign">---</span></div>
+        <div class="detail-row"><span class="detail-name">Saugleitung <span class="detail-ref">S9</span></span><span class="detail-val" data-bind="saugleitung" data-bind-format="temp-no-sign">---</span></div>
+        <div class="detail-row"><span class="detail-name">Raum-Soll eff.</span><span class="detail-val" data-bind="traum1" data-bind-format="temp-no-sign">---</span></div>
+        <div class="detail-row"><span class="detail-name">Vorlauf-Soll</span><span class="detail-val" data-bind="vorlauf_soll" data-bind-format="temp-no-sign">---</span></div>
+      </div>
+
+      <div class="detail-card">
+        <h3>Eingaenge / Schalter</h3>
+        <div class="detail-row"><span class="detail-name">Phasenwaechter <span class="detail-ref">S10</span></span><span class="detail-val" data-bind-text="phasenwaechter:an|aus">---</span></div>
+        <div class="detail-row"><span class="detail-name">Verdichter-Freigabe <span class="detail-ref">S11</span></span><span class="detail-val" data-bind-text="verdichter_freigabe:an|aus">---</span></div>
+        <div class="detail-row"><span class="detail-name">ND-Schalter 1 <span class="detail-ref">S12</span></span><span class="detail-val" data-bind-text="nd_schalter1:an|aus">---</span></div>
+        <div class="detail-row"><span class="detail-name">HD-Schalter <span class="detail-ref">S13</span></span><span class="detail-val" data-bind-text="hd_schalter:an|aus">---</span></div>
+        <div class="detail-row"><span class="detail-name">ND-Schalter 2 <span class="detail-ref">S14</span></span><span class="detail-val" data-bind-text="nd_schalter2:an|aus">---</span></div>
+      </div>
+
+      <div class="detail-card">
+        <h3>Ausgaenge / Aktoren</h3>
+        <div class="detail-row"><span class="detail-name">FBH-Pumpe <span class="detail-ref">A1</span></span><span class="detail-val" data-bind-text="pumpe_hzkr:an|aus">---</span></div>
+        <div class="detail-row"><span class="detail-name">Ladepumpe <span class="detail-ref">A2</span></span><span class="detail-val" data-bind-text="ladepumpe:an|aus">---</span></div>
+        <div class="detail-row"><span class="detail-name">Verdichter <span class="detail-ref">A3</span></span><span class="detail-val" data-bind-text="verdichter:an|aus">---</span></div>
+        <div class="detail-row"><span class="detail-name">MVR0407 FL1 <span class="detail-ref">A4</span></span><span class="detail-val" data-bind-text="mvr0407_fl1:an|aus">---</span></div>
+        <div class="detail-row"><span class="detail-name">Alarm <span class="detail-ref">A5</span></span><span class="detail-val" data-bind-text="alarm:AKTIV|clear">---</span></div>
+        <div class="detail-row"><span class="detail-name">MVR0407 Nach2 <span class="detail-ref">A6</span></span><span class="detail-val" data-bind-text="mvr0407_nach2:an|aus">---</span></div>
+        <div class="detail-row"><span class="detail-name">Ventil WW <span class="detail-ref">A7</span></span><span class="detail-val" data-bind-text="ventil_ww:WW-Pos|Heiz-Pos">---</span></div>
+        <div class="detail-row"><span class="detail-name">Heizstab HZ <span class="detail-ref">A8</span></span><span class="detail-val" data-bind-text="heizstab_hz:aktiv|aus">---</span></div>
+        <div class="detail-row"><span class="detail-name">Heizstab WW <span class="detail-ref">A9</span></span><span class="detail-val" data-bind-text="heizstab_ww:aktiv|aus">---</span></div>
+        <div class="detail-row"><span class="detail-name">Zirkulationspumpe <span class="detail-ref">A10</span></span><span class="detail-val" data-bind-text="pumpe_zirku:an|aus">---</span></div>
+        <div class="detail-row"><span class="detail-name">Meldung Heizung</span><span class="detail-val" data-bind-text="meldung_heizung:an|aus">---</span></div>
+      </div>
+
+      <div class="detail-card">
+        <h3>Zaehler</h3>
+        <div class="detail-row"><span class="detail-name">Betriebsstd. Verdichter</span><span class="detail-val" data-bind="betr_std_verdichter" data-bind-format="int">---</span></div>
+        <div class="detail-row"><span class="detail-name">Schaltungen Verdichter</span><span class="detail-val" data-bind="schaltungen_verdichter" data-bind-format="int">---</span></div>
+        <div class="detail-row"><span class="detail-name">Betriebsstd. Heizstab FB</span><span class="detail-val" data-bind="betr_std_heizstab_fb" data-bind-format="int">---</span></div>
+        <div class="detail-row"><span class="detail-name">Betriebsstd. Heizstab WW</span><span class="detail-val" data-bind="betr_std_heizstab_ww" data-bind-format="int">---</span></div>
+      </div>
+
+      <div class="detail-card">
+        <h3>Status / Funktionen</h3>
+        <div class="detail-row"><span class="detail-name">Message Heizung</span><span class="detail-val" data-bind="message_fb" data-bind-format="int">---</span></div>
+        <div class="detail-row"><span class="detail-name">Message WW</span><span class="detail-val" data-bind="message_ww" data-bind-format="int">---</span></div>
+        <div class="detail-row"><span class="detail-name">Betriebsart F:1</span><span class="detail-val" data-bind-mode="betriebsart">---</span></div>
+        <div class="detail-row"><span class="detail-name">WP-State</span><span class="detail-val" data-bind-state>---</span></div>
+      </div>
+    </div>
+  </section>
 </main>
+
+<!-- tab-toggle -->
+<script>
+  (function() {
+    var dash = document.getElementById('tab-dashboard');
+    var det = document.getElementById('tab-details');
+    var btnD = document.getElementById('tab-btn-dashboard');
+    var btnX = document.getElementById('tab-btn-details');
+    if (!dash || !det || !btnD || !btnX) return;
+    function go(which) {
+      if (which === 'dashboard') {
+        dash.hidden = false;
+        det.hidden = true;
+        btnD.classList.add('active');
+        btnX.classList.remove('active');
+      } else {
+        dash.hidden = true;
+        det.hidden = false;
+        btnX.classList.add('active');
+        btnD.classList.remove('active');
+      }
+    }
+    btnD.addEventListener('click', function() { go('dashboard'); });
+    btnX.addEventListener('click', function() { go('details'); });
+  })();
+</script>
+<!-- /tab-toggle -->
+
 <script src="/ui/live-bindings.js"></script>
 </body>
 </html>
