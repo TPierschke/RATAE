@@ -13,7 +13,10 @@
 
   // Sliding-window dT/dt tracker fuer ETA-Schaetzung im HEIZUNG-Mode.
   // Resettet sich automatisch wenn der State nicht mehr HEIZUNG ist.
-  var heizungTracker = { samples: [] };
+  // Last-good ETA wird "sticky" gehalten, damit die Anzeige nicht zwischen
+  // Zahl und 'wird ermittelt' hin- und herspringt wenn RL kurzzeitig stagniert.
+  var heizungTracker = { samples: [], lastEta: null, lastEtaT: 0 };
+  var ETA_STICKY_MS = 60 * 1000;
 
   function trackHeizungSample(rl) {
     var now = Date.now();
@@ -25,19 +28,33 @@
   }
 
   function calcHeizungEta(diffToOff) {
-    // Returns { eta: <minutes|null>, status: <'warming'|'stagnant'|'ok'|'unrealistic'> }
+    // Returns { eta: <minutes|null>, status: 'warming'|'stagnant'|'ok'|'unrealistic'|'sticky' }
+    var now = Date.now();
     var s = heizungTracker.samples;
+    if (s.length >= 2) {
+      var first = s[0];
+      var last = s[s.length - 1];
+      var dtMin = (last.t - first.t) / 60000;
+      var drC = last.rl - first.rl;
+      if (dtMin >= 0.25 && drC > 0.02) {
+        var rate = drC / dtMin;
+        var etaMin = diffToOff / rate;
+        if (etaMin > 0 && etaMin <= 180) {
+          var rounded = Math.round(etaMin);
+          heizungTracker.lastEta = rounded;
+          heizungTracker.lastEtaT = now;
+          return { eta: rounded, status: 'ok' };
+        }
+      }
+    }
+    // Sticky last-good
+    if (heizungTracker.lastEta !== null && now - heizungTracker.lastEtaT < ETA_STICKY_MS) {
+      return { eta: heizungTracker.lastEta, status: 'sticky' };
+    }
     if (s.length < 2) return { eta: null, status: 'warming' };
-    var first = s[0];
-    var last = s[s.length - 1];
-    var dtMin = (last.t - first.t) / 60000;
-    var drC = last.rl - first.rl;
-    if (dtMin < 0.5) return { eta: null, status: 'warming' };
-    if (drC <= 0.02) return { eta: null, status: 'stagnant' };
-    var rate = drC / dtMin;
-    var etaMin = diffToOff / rate;
-    if (etaMin <= 0 || etaMin > 180) return { eta: null, status: 'unrealistic' };
-    return { eta: Math.round(etaMin), status: 'ok' };
+    var dtMinFinal = (s[s.length - 1].t - s[0].t) / 60000;
+    if (dtMinFinal < 0.25) return { eta: null, status: 'warming' };
+    return { eta: null, status: 'stagnant' };
   }
   var MODE_NAMES = {
     1: 'Standby',
@@ -226,7 +243,11 @@
     var verdichterLabel = verdichter === true ? 'aktiv' : (verdichter === false ? 'aus' : '---');
 
     // Tracker reset wenn nicht mehr HEIZUNG
-    if (rawState !== 'HEIZUNG') heizungTracker.samples = [];
+    if (rawState !== 'HEIZUNG') {
+      heizungTracker.samples = [];
+      heizungTracker.lastEta = null;
+      heizungTracker.lastEtaT = 0;
+    }
 
     switch (rawState) {
       case 'BEREIT':
@@ -243,7 +264,7 @@
           if (diff > 0.1) {
             var etaResult = calcHeizungEta(diff);
             var etaPart;
-            if (etaResult.status === 'ok') {
+            if (etaResult.status === 'ok' || etaResult.status === 'sticky') {
               etaPart = ' · ETA ~' + etaResult.eta + ' min';
             } else if (etaResult.status === 'warming') {
               etaPart = ' · ETA wird ermittelt...';
