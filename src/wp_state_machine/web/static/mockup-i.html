@@ -62,6 +62,108 @@
   </style>
 </head>
 <body>
+<!-- theme-switcher -->
+<style>
+  #theme-switcher {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 9999;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    background: rgba(8, 10, 16, 0.78);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: rgba(255, 255, 255, 0.92);
+    font: 11px/1.2 "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  }
+
+  #theme-switcher label {
+    color: inherit;
+    white-space: nowrap;
+  }
+
+  #theme-switcher select {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  #theme-switcher select:focus {
+    outline: none;
+  }
+
+  #theme-switcher select:focus-visible {
+    outline: 1px solid rgba(255, 255, 255, 0.55);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+
+  #theme-switcher option {
+    color: #111827;
+  }
+
+  @media print {
+    #theme-switcher {
+      display: none !important;
+    }
+  }
+</style>
+<div id="theme-switcher">
+  <label for="theme-switcher-select">Theme:</label>
+  <select id="theme-switcher-select" aria-label="Theme switcher">
+    <option value="live">Live UI</option>
+    <option value="a">Neon Console</option>
+    <option value="c">Glass Future</option>
+    <option value="d">Kinetic Maximalism</option>
+    <option value="e">Bauhaus Industrial</option>
+    <option value="f">Liquid Chrome</option>
+    <option value="g">Utilitarian Cockpit</option>
+    <option value="h">Live Schematic</option>
+    <option value="i">Light Calm</option>
+    <option value="j">Aviation Cockpit</option>
+    <option value="k">Linear Pro</option>
+  </select>
+</div>
+<script>
+  (function () {
+    var select = document.getElementById('theme-switcher-select');
+    if (!select) return;
+
+    var path = window.location.pathname;
+    var match = path.match(/^\/t\/([a-z]+)$/) || path.match(/^\/static\/mockup-([a-z]+)\.html$/);
+    select.value = match ? match[1] : 'live';
+
+    select.addEventListener('change', async function () {
+      var value = select.value;
+      try {
+        var resp = await fetch('/api/theme', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({theme: value})
+        });
+        if (!resp.ok) {
+          console.error('Theme switch failed:', resp.status, resp.statusText);
+          return;
+        }
+        window.location.href = value === 'live' ? '/' : '/t/' + value;
+      } catch (error) {
+        console.error('Theme switch failed:', error);
+      }
+    });
+  })();
+</script>
+<!-- /theme-switcher -->
+
   <main class="app">
     <header class="topbar card">
       <div>

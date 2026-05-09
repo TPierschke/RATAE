@@ -78,7 +78,7 @@ document.addEventListener('alpine:init', () => {
     async init() {
       await this.loadTheme();
       if (this.theme !== 'live' && window.location.pathname === '/') {
-        window.location.replace('/static/mockup-' + this.theme + '.html');
+        window.location.replace('/t/' + this.theme);
         return;
       }
       this.loadBackendVersion();
@@ -109,7 +109,7 @@ document.addEventListener('alpine:init', () => {
         if (this.theme === 'live') {
           window.location.href = '/';
         } else {
-          window.location.href = '/static/mockup-' + this.theme + '.html';
+          window.location.href = '/t/' + this.theme;
         }
       } catch (e) {}
     },

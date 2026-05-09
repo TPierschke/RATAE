@@ -27,7 +27,7 @@ from typing import Any, AsyncGenerator, Optional
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Response
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -269,6 +269,17 @@ def create_app(state: Optional[AppState] = None) -> FastAPI:
             "theme": _state.theme,
             "saved": True,
         }
+
+    @app.get("/t/{theme}")
+    async def theme_preview(theme: str):
+        if theme not in _AVAILABLE_THEMES:
+            raise HTTPException(status_code=404, detail="theme not found")
+        if theme == "live":
+            return RedirectResponse(url="/")
+        path = _STATIC_DIR / f"mockup-{theme}.html"
+        if path.exists():
+            return FileResponse(str(path))
+        raise HTTPException(status_code=404, detail="theme preview not found")
 
     @app.get("/")
     async def root():
