@@ -88,6 +88,10 @@ class TestSensoren:
         s = Sensoren(verdichter=True, ventil_ww=True, heizstab_ww=True)
         assert s.derive_state() == WPState.LEGIONELLENSCHUTZ
 
+    def test_derive_state_legionellenschutz_with_heizstab_ww_only(self):
+        s = Sensoren(heizstab_ww=True)
+        assert s.derive_state() == WPState.LEGIONELLENSCHUTZ
+
     def test_derive_state_warmwasser_without_heizstab(self):
         s = Sensoren(verdichter=True, ventil_ww=True, heizstab_ww=False)
         assert s.derive_state() == WPState.WARMWASSER
@@ -95,6 +99,17 @@ class TestSensoren:
     def test_derive_state_bereit(self):
         s = Sensoren(verdichter=False, betriebsart=Betriebsart.NORMAL)
         assert s.derive_state() == WPState.BEREIT
+
+    @pytest.mark.parametrize(
+        ("sensor_values", "expected_state"),
+        [
+            ({"heizstab_ww": True}, WPState.LEGIONELLENSCHUTZ),
+            ({"verdichter": True, "ventil_ww": True, "heizstab_ww": False}, WPState.WARMWASSER),
+            ({"verdichter": False, "betriebsart": Betriebsart.NORMAL}, WPState.BEREIT),
+        ],
+    )
+    def test_derive_state_required_priority_cases(self, sensor_values, expected_state):
+        assert Sensoren(**sensor_values).derive_state() == expected_state
 
     def test_is_heizstab_active_false(self):
         s = Sensoren(heizstab_hz=False, heizstab_ww=False)

@@ -70,6 +70,18 @@ class TestModbusToState:
         assert _state_value(data) == WPState.WARMWASSER
 
     @pytest.mark.asyncio
+    async def test_heizstab_ww_without_verdichter_yields_legionellenschutz(
+        self, app_state: AppState, client: AsyncClient
+    ):
+        await app_state.update_coil_from_modbus(_modbus_coil_name("heizstab_ww", "heizstab_ww"), True)
+
+        response = await client.get("/state")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert _state_value(data) == WPState.LEGIONELLENSCHUTZ
+
+    @pytest.mark.asyncio
     async def test_verdichter_without_ww_ventil_yields_heizung(self, app_state: AppState, client: AsyncClient):
         await app_state.update_coil_from_modbus(_modbus_coil_name("verdichter", "verdichter"), True)
         await app_state.update_coil_from_modbus(_modbus_coil_name("ventil_ww", "ventil_ww"), False)

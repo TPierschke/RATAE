@@ -15,8 +15,9 @@ from wp_state_machine.automation.setpoints_logger import setpoints_loop
 
 class TestSetpointsLoop:
     @pytest.mark.asyncio
-    async def test_setpoints_loop_initializes_appstate(self):
+    async def test_setpoints_loop_initializes_appstate(self, monkeypatch: pytest.MonkeyPatch, tmp_path):
         """Setpoints-Loop setzt app_state.setpoints mit Fallback-Defaults."""
+        monkeypatch.setenv("HOME", str(tmp_path))
         app_state = AppState()
 
         # Initial sollte setpoints leer sein
@@ -47,8 +48,9 @@ class TestSetpointsLoop:
                 pass
 
     @pytest.mark.asyncio
-    async def test_setpoints_loop_updates_periodically(self):
+    async def test_setpoints_loop_updates_periodically(self, monkeypatch: pytest.MonkeyPatch, tmp_path):
         """Setpoints-Loop aktualisiert regelmaeßig."""
+        monkeypatch.setenv("HOME", str(tmp_path))
         app_state = AppState()
 
         task = asyncio.create_task(setpoints_loop(app_state, config=None, interval=0.1))
@@ -73,8 +75,9 @@ class TestSetpointsLoop:
                 pass
 
     @pytest.mark.asyncio
-    async def test_setpoints_loop_handles_exception(self):
+    async def test_setpoints_loop_handles_exception(self, monkeypatch: pytest.MonkeyPatch, tmp_path):
         """Setpoints-Loop haendelt Exceptions gracefully."""
+        monkeypatch.setenv("HOME", str(tmp_path))
         app_state = AppState()
 
         # Starte mit config=None (ist OK, wird in Loop verarbeitet)

@@ -125,16 +125,18 @@ class Sensoren(BaseModel):
         return bool(self.verdichter)
 
     def derive_state(self) -> str:
-        """Leitet WP-State aus Sensor-Kombination ab."""
+        """Derive the current heat-pump state from the sensor combination."""
         if self.betriebsart == Betriebsart.STANDBY:
             return WPState.STANDBY
+        # The DHW heating element is only used for domestic hot water. When it
+        # is active, the system is in a DHW escalation step even if the
+        # compressor or the DHW valve are currently inactive.
+        if self.heizstab_ww:
+            return WPState.LEGIONELLENSCHUTZ
         if self.verdichter is None:
             return WPState.UNKNOWN
         if self.verdichter:
             if self.ventil_ww:
-                # LEGIONELLENSCHUTZ wenn: Verdichter AN + Ventil WW + Heizstab WW eskaliert
-                if self.heizstab_ww:
-                    return WPState.LEGIONELLENSCHUTZ
                 return WPState.WARMWASSER
             return WPState.HEIZUNG
         return WPState.BEREIT
