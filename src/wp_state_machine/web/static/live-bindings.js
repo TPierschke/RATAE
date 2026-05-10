@@ -178,6 +178,8 @@
   var logged404 = false;
   var inFlight = false;
   var lastGoodState = null;
+  var lastSuccessfulPoll = null;
+  var staleCheckTimer = null;
 
   function hasOwn(obj, key) {
     return !!obj && Object.prototype.hasOwnProperty.call(obj, key);
@@ -470,6 +472,32 @@
     }
   }
 
+  function triggerHeartbeat() {
+    // Reset and restart fade-out animation on each successful poll.
+    // Removes 'pulse' class, forces reflow to ensure animation restarts cleanly.
+    var hb = document.getElementById('heartbeat');
+    if (!hb) return;
+    hb.classList.remove('stale');
+    hb.classList.remove('pulse');
+    // Force reflow to ensure animation restarts from 0%
+    void hb.offsetWidth;
+    // Re-add pulse class to kick off the 2-second fade-out animation
+    hb.classList.add('pulse');
+    lastSuccessfulPoll = Date.now();
+    clearTimeout(staleCheckTimer);
+    staleCheckTimer = setTimeout(checkHeartbeatStale, 30000);
+  }
+
+  function checkHeartbeatStale() {
+    // Mark heartbeat as stale if no successful poll in 30s
+    var hb = document.getElementById('heartbeat');
+    if (!hb) return;
+    var now = Date.now();
+    if (lastSuccessfulPoll && now - lastSuccessfulPoll > 30000) {
+      hb.classList.add('stale');
+    }
+  }
+
   function tick() {
     if (inFlight) return;
     inFlight = true;
@@ -486,6 +514,7 @@
         if (!data) return;
         lastGoodState = normalizeState(data);
         applyState(lastGoodState);
+        triggerHeartbeat();
       })
       .catch(function () {})
       .finally(function () {
@@ -513,6 +542,8 @@
     renderPageDate();
     tick();
     window.setInterval(tick, POLL_INTERVAL_MS);
+    // Initialize heartbeat stale checker
+    staleCheckTimer = setTimeout(checkHeartbeatStale, 30000);
   }
 
   if (document.readyState === 'loading') {

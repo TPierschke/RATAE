@@ -133,6 +133,35 @@ button {
 }
 .footer { color:var(--muted); font-size:12px; line-height:1.4; }
 .ok { color:var(--mint); }
+.heartbeat {
+  display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--mint);
+  box-shadow:0 0 8px rgba(184,241,212,.6);
+  opacity:.2;
+  /* Fade out over 2 seconds when not pulsing */
+  transition:opacity 2s ease-out;
+}
+.heartbeat.pulse {
+  /* Reset to full brightness and kick off fade-out */
+  opacity:1;
+  box-shadow:0 0 12px rgba(184,241,212,.8);
+  animation:hb-fadeout 2s ease-out forwards;
+}
+.heartbeat.stale {
+  background:var(--alert);
+  box-shadow:0 0 8px rgba(255,138,138,.5);
+  animation:none;
+  opacity:1;
+}
+@keyframes hb-fadeout {
+  0% {
+    opacity:1;
+    box-shadow:0 0 12px rgba(184,241,212,.8);
+  }
+  100% {
+    opacity:.2;
+    box-shadow:0 0 4px rgba(184,241,212,.2);
+  }
+}
 @keyframes rise { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
 .banner { animation-delay:.02s; } .header { animation-delay:.08s; } .hero { animation-delay:.14s; }
 .tile:nth-child(1) { animation-delay:.18s; } .tile:nth-child(2) { animation-delay:.24s; }
@@ -489,8 +518,8 @@ button {
     </section>
 
     <footer class="footer glass">
-      <span>FE 0.2.31 · BE 0.5.1</span>
-      <span>SSE <span class="ok">● verbunden</span> · <span id="page-date">2026-05-09</span></span>
+      <span>FE 0.2.32 · BE 0.5.1</span>
+      <span>SSE <span class="ok">● verbunden</span> · <span id="page-date">2026-05-09</span> · <span id="heartbeat" class="heartbeat" title="Poll-Status"></span></span>
     </footer>
   </section>
 
