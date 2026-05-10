@@ -7,13 +7,14 @@ Im DRY_RUN-Modus werden Schreib-Calls geloggt aber nicht ausgefuehrt.
 Endpoints:
   GET  /              Web-UI
   GET  /health        Status aller Sub-Module
-  GET  /state         Aktueller WP-State + Sensoren
+  GET  /state         Aktueller WP-State + Sensoren (REST, bleibt fuer Hydration/Fallback)
+  GET  /events/state  Server-Sent-Events: pushed on every Modbus state change
   GET  /telemetry     Letzte Telemetrie-Daten
   GET  /functions/{id}  Funktion-Detail (F:1, F:9)
   POST /functions/F1/betriebsart   Betriebsart setzen (DRY_RUN)
   POST /functions/F1/normalsoll    Normal-Soll setzen (DRY_RUN)
   POST /functions/F9/start         WW-Boost starten (DRY_RUN)
-  GET  /stream        Server-Sent-Events fuer Live-Updates
+  GET  /stream        Server-Sent-Events fuer Live-Updates (legacy polling-based)
 """
 
 from __future__ import annotations
@@ -30,6 +31,7 @@ from fastapi import FastAPI, HTTPException, Response
 from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from sse_starlette.sse import EventSourceResponse
 
 _STATIC_DIR = Path(__file__).parents[1] / "web" / "static"
 
@@ -111,6 +113,34 @@ class AppState:
         except (OSError, json.JSONDecodeError, TypeError):
             pass
         self._lock = asyncio.Lock()
+        # SSE pub/sub: set of asyncio.Queue instances, one per connected client.
+        # Each queue receives the current state snapshot dict on every state change.
+        self._sse_subscribers: set[asyncio.Queue] = set()
+
+    def _build_state_event(self) -> dict:
+        """Build the state-event payload (same shape as /state REST response)."""
+        return {
+            "state": self.wp_state,
+            "dry_run": self.dry_run,
+            "last_update": self.last_update.isoformat() if self.last_update else None,
+            "sensoren": self.sensoren.model_dump(mode="json"),
+            "setpoints": self.setpoints,
+        }
+
+    def _notify_sse_subscribers(self) -> None:
+        """Push the current state to all SSE subscribers (non-blocking, best-effort).
+
+        Called from within the _lock — must not await.  Slow or full queues are
+        dropped silently to avoid blocking the Modbus ingest path.
+        """
+        if not self._sse_subscribers:
+            return
+        payload = self._build_state_event()
+        for q in self._sse_subscribers:
+            try:
+                q.put_nowait(payload)
+            except asyncio.QueueFull:
+                log.debug("SSE subscriber queue full — skipping")
 
     async def save_setpoints(self, setpoints: dict[str, Any]) -> None:
         """Persist setpoints atomically to ~/.config/wp-state-machine/setpoints.json."""
@@ -159,6 +189,7 @@ class AppState:
             self.sensoren = merged
             self.wp_state = merged.derive_state()
             self.last_update = datetime.now(timezone.utc)
+            self._notify_sse_subscribers()
 
     async def update_from_modbus(self, sensor_name: str, value: float) -> None:
         """
@@ -184,6 +215,7 @@ class AppState:
             self.wp_state = updated.derive_state()
             self.last_update = datetime.now(timezone.utc)
             self.last_modbus_update = self.last_update
+            self._notify_sse_subscribers()
         log.debug("Modbus update: %s=%s -> WP_STATE=%s", field, value, self.wp_state)
 
     async def update_coil_from_modbus(self, coil_name: str, value: bool) -> None:
@@ -208,6 +240,7 @@ class AppState:
             self.wp_state = updated.derive_state()
             self.last_update = datetime.now(timezone.utc)
             self.last_modbus_update = self.last_update
+            self._notify_sse_subscribers()
         log.debug("Modbus coil: %s=%s -> WP_STATE=%s", field, value, self.wp_state)
 
         # Edge-Triggers: SOFORT, ohne Loop. Fire-and-forget asyncio.create_task.
@@ -365,6 +398,46 @@ def create_app(state: Optional[AppState] = None) -> FastAPI:
             "sensoren": _state.sensoren.model_dump(),
             "setpoints": _state.setpoints,
         }
+
+    # ---------------------------------------------------------------------------
+    # Server-Sent-Events: push-based state stream (primary live channel)
+    # ---------------------------------------------------------------------------
+
+    @app.get("/events/state")
+    async def events_state() -> EventSourceResponse:
+        """Push-based SSE endpoint: sends the full state JSON on every Modbus update.
+
+        Clients should:
+          1. Fetch /state once for initial hydration.
+          2. Open EventSource('/events/state') and call applyState() on each message.
+
+        Protocol details:
+          - event type: 'state'
+          - data: JSON object identical to /state response
+          - heartbeat comment (': ping') every 15 s to prevent proxy timeouts
+          - retry hint: 5 000 ms (browser auto-reconnect)
+        """
+        queue: asyncio.Queue = asyncio.Queue(maxsize=8)
+        _state._sse_subscribers.add(queue)
+
+        async def generator():
+            # Immediate initial comment + retry hint so iOS WebKit does not fire onerror.
+            yield {"comment": "connected"}
+            yield {"event": "retry", "data": "5000"}
+            try:
+                heartbeat_interval = 15.0
+                while True:
+                    try:
+                        payload = await asyncio.wait_for(queue.get(), timeout=heartbeat_interval)
+                        yield {"event": "state", "data": json.dumps(payload)}
+                    except asyncio.TimeoutError:
+                        # Send SSE comment as heartbeat — keeps the connection alive
+                        # through proxies that close idle streams.
+                        yield {"comment": "ping"}
+            finally:
+                _state._sse_subscribers.discard(queue)
+
+        return EventSourceResponse(generator())
 
     @app.get("/api/reset")
     async def api_reset() -> Response:

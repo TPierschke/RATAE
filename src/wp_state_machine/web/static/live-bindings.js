@@ -1,15 +1,16 @@
 /* Universal DOM bindings for the static UI.
    Contract:
-   - Poll `/state` every 5 seconds.
+   - Fetch `/state` once on startup for initial hydration.
+   - Subscribe to `/events/state` (Server-Sent Events) for live push updates.
    - Use `data-bind`, `data-bind-bool`, `data-bind-alarm`, `data-bind-text`,
      `data-bind-state`, and `data-bind-state-sub` as the single source of truth
      for live updates.
    - Never throw, never block on fetch errors, and keep the last good values.
-   - Accept server state as either `wp_state` or legacy `state`. */
+   - Accept server state as either `wp_state` or legacy `state`.
+   - Stale detection: heartbeat goes red when no SSE message arrives for 30 s.
+   - EventSource reconnects automatically — no extra reconnect logic needed. */
 (function () {
   'use strict';
-
-  var POLL_INTERVAL_MS = 5000;
 
   // Generic sliding-window dT/dt tracker for ETA in HEIZUNG / WARMWASSER /
   // LEGIONELLENSCHUTZ. Per mode: own tracker, own localStorage key, own
@@ -176,7 +177,6 @@
   ];
 
   var logged404 = false;
-  var inFlight = false;
   var lastGoodState = null;
   var lastSuccessfulPoll = null;
   var staleCheckTimer = null;
@@ -464,14 +464,6 @@
     applyWwSollBindings(state);
   }
 
-  function log404Once() {
-    if (logged404) return;
-    logged404 = true;
-    if (window.console && typeof window.console.warn === 'function') {
-      window.console.warn('live-bindings: /state returned 404; keeping last good values');
-    }
-  }
-
   function triggerHeartbeat() {
     // Reset and restart fade-out animation on each successful poll.
     // Removes 'pulse' class, forces reflow to ensure animation restarts cleanly.
@@ -498,10 +490,16 @@
     }
   }
 
-  function tick() {
-    if (inFlight) return;
-    inFlight = true;
+  function log404Once() {
+    if (logged404) return;
+    logged404 = true;
+    if (window.console && typeof window.console.warn === 'function') {
+      window.console.warn('live-bindings: /state returned 404; keeping last good values');
+    }
+  }
 
+  /** Fetch /state once for initial DOM hydration before the SSE stream opens. */
+  function hydrate() {
     fetch('/state', { cache: 'no-store' })
       .then(function (response) {
         if (!response.ok) {
@@ -516,10 +514,27 @@
         applyState(lastGoodState);
         triggerHeartbeat();
       })
-      .catch(function () {})
-      .finally(function () {
-        inFlight = false;
-      });
+      .catch(function () {});
+  }
+
+  /** Open an EventSource on /events/state and apply each pushed state update. */
+  function connectSSE() {
+    var es = new window.EventSource('/events/state');
+
+    es.addEventListener('state', function (evt) {
+      try {
+        var data = JSON.parse(evt.data);
+        lastGoodState = normalizeState(data);
+        applyState(lastGoodState);
+        triggerHeartbeat();
+      } catch (e) {
+        // Malformed JSON — keep last good state, do nothing
+      }
+    });
+
+    // onerror fires on connection drop; EventSource will auto-reconnect.
+    // No extra logic needed — stale detection handles the UI side.
+    es.onerror = function () {};
   }
 
   function renderPageDate() {
@@ -540,9 +555,11 @@
 
   function start() {
     renderPageDate();
-    tick();
-    window.setInterval(tick, POLL_INTERVAL_MS);
-    // Initialize heartbeat stale checker
+    // 1. Hydrate immediately from REST so the UI is not blank while SSE connects.
+    hydrate();
+    // 2. Open the push stream for all subsequent updates.
+    connectSSE();
+    // Initialize heartbeat stale checker — fires if no SSE message arrives for 30 s.
     staleCheckTimer = setTimeout(checkHeartbeatStale, 30000);
   }
 

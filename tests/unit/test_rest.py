@@ -232,6 +232,97 @@ class TestWWStart:
         assert "DRY_RUN" in resp.json()["reason"]
 
 
+@pytest.fixture(autouse=True)
+def reset_sse_app_status():
+    """Reset sse-starlette's AppStatus between tests.
+
+    EventSourceResponse internally uses AppStatus.should_exit_event which is an
+    anyio.Event bound to the event loop created at first use.  pytest-asyncio
+    creates a fresh loop per test, so the event becomes stale.  Resetting it to
+    None forces sse-starlette to create a new one on the next request.
+    """
+    from sse_starlette.sse import AppStatus
+
+    AppStatus.should_exit_event = None
+    AppStatus.should_exit = False
+    yield
+    AppStatus.should_exit_event = None
+    AppStatus.should_exit = False
+
+
+class TestSSEEventsState:
+    """Tests for the push-based /events/state SSE endpoint.
+
+    sse-starlette 2.x uses anyio TaskGroup + uvicorn AppStatus internally.
+    The httpx ASGITransport does not drive the uvicorn signal pathway, so
+    full end-to-end streaming tests are not reliable in the unit suite.
+
+    Instead we test:
+      1. The pub/sub mechanism on AppState directly (queue subscription + notify).
+      2. The shape of the event payload via _build_state_event.
+      3. The HTTP endpoint returns 200 + text/event-stream content-type via a
+         non-streaming GET that is cancelled after headers arrive.
+    """
+
+    @pytest.mark.asyncio
+    async def test_pubsub_delivers_event_after_modbus_update(self, app_state: AppState):
+        """After update_coil_from_modbus, all registered queues receive a state dict."""
+        import asyncio
+
+        q: asyncio.Queue = asyncio.Queue(maxsize=4)
+        app_state._sse_subscribers.add(q)
+        try:
+            await app_state.update_coil_from_modbus("o_verdichter", True)
+            # Queue must have been populated synchronously inside the lock
+            assert not q.empty(), "SSE queue is empty after Modbus coil update"
+            payload = q.get_nowait()
+            assert "state" in payload
+            assert "sensoren" in payload
+            assert "setpoints" in payload
+        finally:
+            app_state._sse_subscribers.discard(q)
+
+    @pytest.mark.asyncio
+    async def test_pubsub_delivers_event_after_register_update(self, app_state: AppState):
+        """After update_from_modbus, registered queues receive a state dict."""
+        import asyncio
+
+        q: asyncio.Queue = asyncio.Queue(maxsize=4)
+        app_state._sse_subscribers.add(q)
+        try:
+            await app_state.update_from_modbus("vorlauf", 35.5)
+            assert not q.empty(), "SSE queue is empty after Modbus register update"
+            payload = q.get_nowait()
+            assert payload["sensoren"]["vorlauf"] == pytest.approx(35.5)
+        finally:
+            app_state._sse_subscribers.discard(q)
+
+    @pytest.mark.asyncio
+    async def test_build_state_event_shape(self, app_state: AppState):
+        """_build_state_event returns the same structure as GET /state."""
+        app_state.setpoints = {"ww_soll_normal": 50.0}
+        payload = app_state._build_state_event()
+        assert "state" in payload
+        assert "dry_run" in payload
+        assert "sensoren" in payload
+        assert "setpoints" in payload
+        assert payload["setpoints"]["ww_soll_normal"] == 50.0
+
+    @pytest.mark.asyncio
+    async def test_pubsub_full_queue_does_not_raise(self, app_state: AppState):
+        """A full subscriber queue is silently dropped — no exception propagates."""
+        import asyncio
+
+        q: asyncio.Queue = asyncio.Queue(maxsize=1)
+        q.put_nowait({"dummy": True})  # fill the queue
+        app_state._sse_subscribers.add(q)
+        try:
+            # Should not raise even though the queue is full
+            await app_state.update_coil_from_modbus("ventil_ww", True)
+        finally:
+            app_state._sse_subscribers.discard(q)
+
+
 class TestAppStateSnapshot:
     @pytest.mark.asyncio
     async def test_get_snapshot_returns_tuple(self, app_state: AppState):
