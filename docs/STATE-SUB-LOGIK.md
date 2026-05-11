@@ -73,6 +73,26 @@ der CMI-Funktionsuebersicht (`menupage.cgi?page=3E01581E`) gecrawlt.
 Felder die der Logger liefert: `ww_soll_normal`, `ww_ist`, `normal_soll`,
 `absenk_soll`, `raum_ist`, `vorlauf_soll`, `ww_soll_legio` (konstant 70.0).
 
+## Setpoints in Telemetry-Historie (ab 0.5.4, 2026-05-11)
+
+Ab Backend 0.5.4 schreibt der `snapshot_logger` die Setpoints **zusaetzlich**
+in die DB-Tabelle `public.telemetry`. Neue Spalten:
+
+```
+normal_soll, absenk_soll, raum_ist, ww_soll_normal, ww_soll_legio, ww_ist
+```
+
+Damit liegen Setpoints und Sensoren/Aktoren auf der **gleichen** 5-min-Zeitachse
+und koennen direkt gegeneinander ge-plotted werden (z.B. "wann hat User
+normal_soll geaendert" gegen "wie hat sich vorlauf_soll und Raumtemperatur
+ueber die Zeit veraendert").
+
+Setpoints in `setpoints.json` bleiben als Latest-Snapshot fuer schnellen
+Boot ohne Wartezeit. **Wahre Quelle fuer History ist die Tabelle.**
+
+Migration: `deploy/migrate_0054_telemetry_setpoints.sql` (idempotent,
+`ADD COLUMN IF NOT EXISTS`). Im `schema.sql` fuer fresh installs eingepflegt.
+
 # Frontend Setpoints Fallback
 
 `live-bindings.js` `getBoundValue()` faellt auf `state.setpoints[key]` zurueck
