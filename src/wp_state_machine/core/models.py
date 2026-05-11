@@ -189,19 +189,40 @@ class TelemetryRecord(BaseModel):
     # Status codes
     message_fb: Optional[int] = None
     message_ww: Optional[int] = None
-    # Setpoints
+    # Setpoints from sensor readings
     vorlauf_soll: Optional[float] = None
     traum1: Optional[float] = None
+    # Setpoints from CMI function-overview crawl (may be None until first crawl)
+    normal_soll: Optional[float] = None
+    absenk_soll: Optional[float] = None
+    raum_ist: Optional[float] = None
+    ww_soll_normal: Optional[float] = None
+    ww_soll_legio: Optional[float] = None
+    ww_ist: Optional[float] = None
 
     @classmethod
-    def from_sensoren(cls, s: Sensoren, state: str) -> "TelemetryRecord":
+    def from_sensoren(
+        cls,
+        s: "Sensoren",
+        state: str,
+        setpoints: Optional[dict] = None,
+    ) -> "TelemetryRecord":
+        """Build a TelemetryRecord from sensor data and optional function setpoints.
+
+        Args:
+            s: Current sensor snapshot.
+            state: Derived WP state string (WPState constant).
+            setpoints: Optional dict from app_state.setpoints (crawled from CMI
+                function-overview).  Missing or None keys are stored as NULL.
+        """
+        sp = setpoints or {}
         return cls(
             timestamp=s.timestamp,
             vorlauf=s.vorlauf,
             ruecklauf=s.ruecklauf,
             warmwasser=s.warmwasser,
             aussen=s.aussen,
-            raum_ist=s.raum_ist,
+            raum_ist=sp.get("raum_ist"),  # prefer setpoints crawl (S5 + dial offset)
             heissgas=s.heissgas,
             fluessigkeit=s.fluessigkeit,
             saugleitung=s.saugleitung,
@@ -229,8 +250,13 @@ class TelemetryRecord(BaseModel):
             betr_std_heizstab_ww=s.betr_std_heizstab_ww,
             message_fb=s.message_fb,
             message_ww=s.message_ww,
-            vorlauf_soll=s.vorlauf_soll,
+            vorlauf_soll=sp.get("vorlauf_soll", s.vorlauf_soll),  # crawl wins, sensor fallback
             traum1=s.traum1,
+            normal_soll=sp.get("normal_soll"),
+            absenk_soll=sp.get("absenk_soll"),
+            ww_soll_normal=sp.get("ww_soll_normal"),
+            ww_soll_legio=sp.get("ww_soll_legio"),
+            ww_ist=sp.get("ww_ist"),
         )
 
 

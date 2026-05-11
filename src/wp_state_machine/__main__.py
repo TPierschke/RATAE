@@ -120,7 +120,10 @@ async def scrape_once(config: Config, app_state) -> dict:
             < MODBUS_FRESHNESS_SECONDS
         )
         if not modbus_fresh:
-            record = TelemetryRecord.from_sensoren(sensoren, app_state.wp_state)
+            setpoints = getattr(app_state, "setpoints", None) or {}
+            record = TelemetryRecord.from_sensoren(
+                sensoren, app_state.wp_state, setpoints=setpoints
+            )
             await app_state.postgres.insert_telemetry(record.model_dump())
 
     warnings = run_all_checks(sensoren, last_update=app_state.last_update)

@@ -61,6 +61,12 @@ _TELEMETRY_COLUMNS: tuple[tuple[str, str], ...] = (
     ("message_ww", "message_ww"),
     ("vorlauf_soll", "vorlauf_soll"),
     ("traum1", "traum1"),
+    ("normal_soll", "normal_soll"),
+    ("absenk_soll", "absenk_soll"),
+    ("raum_ist", "raum_ist"),
+    ("ww_soll_normal", "ww_soll_normal"),
+    ("ww_soll_legio", "ww_soll_legio"),
+    ("ww_ist", "ww_ist"),
 )
 
 _TELEMETRY_INSERT_SQL = (

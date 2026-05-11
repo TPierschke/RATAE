@@ -29,7 +29,14 @@ async def snapshot_loop(app_state, interval: int = DEFAULT_INTERVAL) -> None:
     while True:
         try:
             if app_state.postgres and app_state.postgres.is_connected:
-                record = TelemetryRecord.from_sensoren(app_state.sensoren, app_state.wp_state)
+                # Pass setpoints dict so CMI function setpoints are stored alongside
+                # sensor readings.  None/missing keys become NULL — no insert error.
+                setpoints = getattr(app_state, "setpoints", None) or {}
+                record = TelemetryRecord.from_sensoren(
+                    app_state.sensoren,
+                    app_state.wp_state,
+                    setpoints=setpoints,
+                )
                 # Snapshot timestamp = wall-clock now, not last sensor update.
                 # Otherwise stale sensors produce gaps + duplicate timestamps in time-series.
                 record.timestamp = datetime.now(timezone.utc)

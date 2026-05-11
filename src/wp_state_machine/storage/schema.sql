@@ -51,9 +51,15 @@ CREATE TABLE IF NOT EXISTS telemetry (
     -- Status codes (uint16)
     message_fb             INTEGER,
     message_ww             INTEGER,
-    -- Setpoints
+    -- Setpoints (from CMI function-overview crawl, may be NULL until first crawl)
     vorlauf_soll           REAL,
     traum1                 REAL,
+    normal_soll            REAL,
+    absenk_soll            REAL,
+    raum_ist               REAL,
+    ww_soll_normal         REAL,
+    ww_soll_legio          REAL,
+    ww_ist                 REAL,
     PRIMARY KEY (id, ts)
 );
 
