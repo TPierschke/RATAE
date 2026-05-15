@@ -40,7 +40,7 @@ body::after { background:radial-gradient(circle at 70% 52%, rgba(216,200,255,.08
 .banner,.header,.hero,.tile,.panel,.footer { border-radius:var(--r); animation:rise .75s both; }
 .banner {
   padding:11px 16px; text-align:center; font-size:12px; letter-spacing:.22em; text-transform:uppercase;
-  background:linear-gradient(90deg, rgba(255,138,138,.16), rgba(255,199,165,.1));
+  background: linear-gradient(90deg, rgba(255, 138, 85, 0.9), rgba(255, 86, 52, 0.9)); padding: 16px 20px; font-weight: bold; border: 2px solid rgba(255, 86, 52, 0.9); /* Updated DRY-RUN-BANNER style */
 }
 .header,.hero,.panel { padding:18px 20px; }
 .footer { padding:18px 20px; }
@@ -123,11 +123,11 @@ body::after { background:radial-gradient(circle at 70% 52%, rgba(216,200,255,.08
 .on { color:#09160f; background:rgba(184,241,212,.92); }
 .off { color:rgba(242,247,255,.74); }
 .ctrl { gap:14px; }
-select,button {
+select,.btn-cta {
   width:100%; padding:15px 16px; border-radius:16px; border:1px solid rgba(255,255,255,.1); font:600 14px/1 Inter,Geist,sans-serif;
 }
 select { color:var(--text); background:rgba(255,255,255,.07); outline:none; }
-button {
+.btn-cta {
   color:#13202d; background:linear-gradient(135deg, var(--mint), var(--cyan) 52%, var(--peach));
   box-shadow:0 16px 34px rgba(184,241,212,.18);
 }
@@ -171,7 +171,7 @@ button {
 }
 @media (max-width:600px) {
   .shell { width:min(1180px, calc(100% - 16px)); margin:16px auto; gap:12px; }
-  .tab-bar { width:min(1180px, calc(100% - 16px)); margin:44px auto 0; padding:6px; gap:6px; }
+  .tab-bar { position: sticky; top: 0; z-index: 5; /* Made .tab-bar sticky */ width:min(1180px, calc(100% - 16px)); margin:44px auto 0; padding:6px; gap:6px; }
   .banner,.header,.hero,.tile,.panel,.footer,.detail-card { border-radius:18px; }
   .header,.hero,.panel,.footer,.tile,.detail-card { padding-left:16px; padding-right:16px; }
   .hero { padding-top:22px; padding-bottom:20px; gap:8px; }
@@ -186,7 +186,7 @@ button {
   #theme-switcher { top:8px; padding:6px 9px; }
 }
 @media (max-width:400px) {
-  .tab-bar { margin-top:40px; }
+  .tab-bar { position: sticky; top: 0; z-index: 5; /* Made .tab-bar sticky */ margin-top:40px; }
   .tab-btn { flex:1 1 0; padding:10px 12px; }
   .header,.hero,.panel,.footer,.tile,.detail-card { padding-left:14px; padding-right:14px; }
   .state { font-size:clamp(40px, 12vw, 56px); line-height:.92; }
@@ -204,7 +204,7 @@ button {
   display:flex; gap:8px; align-items:center; width:100%;
 }
 .track {
-  position:relative; width:100%; max-width:360px; height:44px; background:rgba(255,255,255,.06); border-radius:999px;
+  position:relative; width:100%; height:44px; background:rgba(255,255,255,.06); border-radius:999px;
   border:1px solid rgba(255,255,255,.1); padding:4px; display:flex; gap:0;
 }
 .track::before {
@@ -283,7 +283,7 @@ button {
     padding: 6px 10px;
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 999px;
-    background: rgba(8, 10, 16, 0.78);
+    background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); /* Updated theme-switcher to Glass Style */
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     color: rgba(255, 255, 255, 0.92);
@@ -372,7 +372,7 @@ button {
 <!-- /theme-switcher -->
 <!-- tab-bar for dashboard/details -->
 <style>
-  .tab-bar {
+  .tab-bar { position: sticky; top: 0; z-index: 5; /* Made .tab-bar sticky */
     display: flex;
     gap: 8px;
     padding: 8px;
@@ -718,6 +718,11 @@ button {
 })();
 </script>
 
+<script>
+  // Reload-Scroll-Fix: nach Cmd+R / Pull-to-Refresh immer ganz oben starten.
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  window.addEventListener('load', function() { window.scrollTo(0, 0); });
+</script>
 <script src="/ui/live-bindings.js"></script>
 </body>
 </html>
