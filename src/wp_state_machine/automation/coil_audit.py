@@ -168,11 +168,25 @@ async def handle_alarm_edge(app_state, config) -> None:
         log.error("handle_alarm_edge fehlgeschlagen: %s", exc)
 
 
+VERDICHTER_AUDIT_COOLDOWN_SEC = 300  # 5 min — gibt dem 5-min Web-Scraper Zeit zu konvergieren
+
+
 async def handle_verdichter_edge(app_state, config) -> None:
     """
     Wird direkt aus update_coil_from_modbus aufgerufen wenn Verdichter
     von False auf True wechselt — Mapping-Audit zur Diagnose.
+
+    Cooldown vor dem Audit: Modbus liest live, der Web-Scraper laeuft aber
+    nur alle 5 min. Ein sofortiger Vergleich erzeugt deshalb regelmaessig
+    false-positive DISKREPANZ-Meldungen direkt nach dem Anspringen des
+    Verdichters. 5 min Karenz, dann Re-Check ob Verdichter ueberhaupt
+    noch laeuft, dann Audit.
     """
+    log.info("handle_verdichter_edge: Cooldown %ds bevor Audit startet", VERDICHTER_AUDIT_COOLDOWN_SEC)
+    await asyncio.sleep(VERDICHTER_AUDIT_COOLDOWN_SEC)
+    if app_state.sensoren.verdichter is not True:
+        log.info("handle_verdichter_edge: Verdichter inzwischen wieder AUS — kein Audit")
+        return
     log.info("handle_verdichter_edge: Audit gegen Web-Scraper")
     try:
         diff = await _audit_now(app_state, config)

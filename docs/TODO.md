@@ -21,3 +21,18 @@
 - mockup-c.html: Raumtemp-Kachel → Raum-Soll (traum1 = Raum-Soll laut models.py)
 - live-bindings.js: applyWwSollBindings() — WW-Soll berechnung nach wp_state
 - version.json: FE 0.2.2 (2026-05-09)
+
+---
+
+## Design-Favoriten scharfschalten (Notiz 2026-05-15)
+
+Bisher nur Mockups angesehen, noch nicht in den Live-Build integriert. Irgendwann nachholen — Reihenfolge frei waehlbar:
+
+- [ ] **Design F Liquid Chrome** (User-Favorit)
+- [ ] **Design G Utilitarian Cockpit** (User-Favorit)
+- [ ] **Design I Light Calm** (User-Favorit)
+- [ ] **Design J Aviation Cockpit** (User-Favorit "mega geil")
+- [ ] **Design K Linear Pro** (User-Favorit "Hammer")
+- [ ] **Design D Kinetic** — Puls-Animation als Feature pruefen
+
+Aktuell Live: mockup-c (Glass Future). Beim Scharfschalten der Favoriten: Live-Bindings + SSE-Push muessen weiterhin funktionieren, mockup-c.html NIE veraendern (User-Regel).

@@ -587,23 +587,12 @@ if (window.caches) caches.keys().then(ks => ks.forEach(k => caches.delete(k)));
 
     @app.post("/functions/F1/betriebsart", response_model=WriteResult)
     async def set_betriebsart(req: SetBetriebsartRequest) -> WriteResult:
-        """Setzt Betriebsart F:1 FBHEIZ (1..7)."""
+        """Setzt Betriebsart F:1 FBHEIZ. Nur 1=Standby und 3=Normal erlaubt (User-Regel 2026-05-15)."""
         return await _execute_write("3E9001301C", req.betriebsart, "Betriebsart")
 
-    @app.post("/functions/F1/normalsoll", response_model=WriteResult)
-    async def set_normalsoll(req: SetNormalsollRequest) -> WriteResult:
-        """Setzt Normal-Soll-Temperatur F:1 FBHEIZ (10..30 °C)."""
-        return await _execute_write("3EB001300C", req.temp, "Normalsoll")
-
-    @app.post("/functions/F1/absenksoll", response_model=WriteResult)
-    async def set_absenksoll(req: SetAbsenksollRequest) -> WriteResult:
-        """Setzt Absenk-Soll-Temperatur F:1 FBHEIZ (5..25 °C)."""
-        return await _execute_write("3EB001300D", req.temp, "Absenksoll")
-
-    @app.post("/functions/F9/wwsoll", response_model=WriteResult)
-    async def set_wwsoll(req: SetNormalsollRequest) -> WriteResult:
-        """Setzt WW-Soll-Temperatur F:9 (30..70 °C)."""
-        return await _execute_write("3EB0023118", req.temp, "WW-Soll")
+    # Entfernt 2026-05-15 (User-Regel): normalsoll, absenksoll, wwsoll Endpoints.
+    # WW-Soll ist disruptiv (HD-Schalter-Risiko bei >50 Grad). Normal/Absenk-Soll
+    # nur ueber CMI/Anlage selbst aendern, nicht ueber Automatisierung.
 
     @app.post("/functions/F9/start", response_model=WriteResult)
     async def start_ww_boost() -> WriteResult:

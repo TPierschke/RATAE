@@ -123,30 +123,24 @@ async def write_to_cmi(config: Config, address: str, value: int | float) -> Writ
 
 
 async def set_betriebsart(config: Config, value: int) -> WriteResult:
-    """F:1 Betriebsart 1..7. Whitelist via safety.check_write vorher!"""
+    """F:1 Betriebsart. Nur {1=Standby, 3=Normal} laut Whitelist (User-Regel 2026-05-15).
+
+    Andere Modi (Zeit/Abgesenkt/Party/Urlaub/Feiertag) nur ueber CMI/Anlage selbst.
+    """
     return await write_to_cmi(config, "3E9001301C", value)
 
 
-async def set_normalsoll(config: Config, temp_celsius: float) -> WriteResult:
-    """F:1 Raum-Soll Normal in °C (10..30). Whitelist vorher!"""
-    return await write_to_cmi(config, "3EB001300C", temp_celsius)
-
-
-async def set_absenksoll(config: Config, temp_celsius: float) -> WriteResult:
-    """F:1 Raum-Soll Abgesenkt in °C (5..25). Whitelist vorher!"""
-    return await write_to_cmi(config, "3EB001300D", temp_celsius)
-
-
-async def set_wwsoll(config: Config, temp_celsius: float) -> WriteResult:
-    """F:9 WW-Soll-Temperatur in °C (30..70). Whitelist vorher!"""
-    return await write_to_cmi(config, "3EB0023118", temp_celsius)
-
-
 async def start_ww_boost(config: Config) -> WriteResult:
-    """F:9 WW_ANF.2 STARTEN=1 (Legionellenschutz / WW-Boost)."""
+    """F:9 WW_ANF.2 STARTEN=1 (Legionellenschutz / WW-Boost). Auto-Stop bei 70 Grad."""
     return await write_to_cmi(config, "3E80093125", 1)
 
 
 async def stop_ww_boost(config: Config) -> WriteResult:
     """F:9 WW_ANF.2 STOP=1 (manueller Abbruch des WW-Boost)."""
     return await write_to_cmi(config, "3E80093126", 1)
+
+
+# Entfernt 2026-05-15 (User-Regel: nur ueber CMI/Anlage):
+#   set_normalsoll, set_absenksoll, set_wwsoll
+# Begruendung: WW-Soll ist disruptiv (HD-Schalter-Risiko bei >50 Grad),
+#              Normal/Absenk-Soll sollen nicht automatisiert geaendert werden.

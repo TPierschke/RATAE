@@ -32,40 +32,12 @@ class TestWhitelistAllowed:
         r = check_write("3E9001301C", 3)
         assert r.allowed is True
 
-    def test_betriebsart_abgesenkt(self):
-        r = check_write("3E9001301C", 4)
-        assert r.allowed is True
-
-    def test_betriebsart_feiertag(self):
-        r = check_write("3E9001301C", 7)
-        assert r.allowed is True
-
-    def test_normalsoll_min(self):
-        r = check_write("3EB001300C", 10)
-        assert r.allowed is True
-
-    def test_normalsoll_max(self):
-        r = check_write("3EB001300C", 30)
-        assert r.allowed is True
-
-    def test_normalsoll_typical(self):
-        r = check_write("3EB001300C", 21)
-        assert r.allowed is True
-
-    def test_absenksoll_min(self):
-        r = check_write("3EB001300D", 5)
-        assert r.allowed is True
-
-    def test_absenksoll_max(self):
-        r = check_write("3EB001300D", 25)
-        assert r.allowed is True
-
-    def test_absenksoll_typical(self):
-        r = check_write("3EB001300D", 18)
-        assert r.allowed is True
-
     def test_ww_start(self):
         r = check_write("3E80093125", 1)
+        assert r.allowed is True
+
+    def test_ww_stop(self):
+        r = check_write("3E80093126", 1)
         assert r.allowed is True
 
     def test_address_lowercase_normalized(self):
@@ -90,6 +62,28 @@ class TestBetriebsartInvalidValues:
         assert r.allowed is False
         assert "0" in r.reason or "AUSSERHALB" in r.reason
 
+    def test_betriebsart_zeit_blocked(self):
+        """Wert 2 (Zeit/Auto) nicht mehr erlaubt seit User-Regel 2026-05-15."""
+        r = check_write("3E9001301C", 2)
+        assert r.allowed is False
+
+    def test_betriebsart_abgesenkt_blocked(self):
+        """Wert 4 (Abgesenkt) nicht erlaubt — nur ueber CMI/Anlage selbst."""
+        r = check_write("3E9001301C", 4)
+        assert r.allowed is False
+
+    def test_betriebsart_party_blocked(self):
+        r = check_write("3E9001301C", 5)
+        assert r.allowed is False
+
+    def test_betriebsart_urlaub_blocked(self):
+        r = check_write("3E9001301C", 6)
+        assert r.allowed is False
+
+    def test_betriebsart_feiertag_blocked(self):
+        r = check_write("3E9001301C", 7)
+        assert r.allowed is False
+
     def test_betriebsart_eight_blocked(self):
         r = check_write("3E9001301C", 8)
         assert r.allowed is False
@@ -100,35 +94,29 @@ class TestBetriebsartInvalidValues:
 
 
 # ---------------------------------------------------------------------------
-# Verbotene Sollwerte
+# Sollwert-Adressen seit User-Regel 2026-05-15 NICHT mehr in Whitelist
+# (nur ueber CMI/Anlage direkt aenderbar — WW-Soll disruptiv: HD-Schalter-Risiko)
 # ---------------------------------------------------------------------------
 
 
-class TestSollwertRanges:
-    def test_normalsoll_too_low(self):
-        r = check_write("3EB001300C", 9)
+class TestSollwertNoLongerWhitelisted:
+    def test_normalsoll_now_blocked(self):
+        """3EB001300C Normalsoll seit 2026-05-15 nicht mehr automatisiert setzbar."""
+        r = check_write("3EB001300C", 22)
         assert r.allowed is False
-        assert "RANGE" in r.reason or "AUSSERHALB" in r.reason
+        assert "WHITELIST" in r.reason
 
-    def test_normalsoll_too_high(self):
-        r = check_write("3EB001300C", 31)
+    def test_absenksoll_now_blocked(self):
+        """3EB001300D Absenksoll seit 2026-05-15 nicht mehr automatisiert setzbar."""
+        r = check_write("3EB001300D", 18)
         assert r.allowed is False
+        assert "WHITELIST" in r.reason
 
-    def test_absenksoll_too_low(self):
-        r = check_write("3EB001300D", 4)
+    def test_wwsoll_now_blocked(self):
+        """3EB0023118 WW-Soll seit 2026-05-15 raus — HD-Schalter-Risiko bei >50 Grad."""
+        r = check_write("3EB0023118", 50)
         assert r.allowed is False
-
-    def test_absenksoll_too_high(self):
-        r = check_write("3EB001300D", 26)
-        assert r.allowed is False
-
-    def test_normalsoll_boundary_exact_low(self):
-        r = check_write("3EB001300C", 10)
-        assert r.allowed is True
-
-    def test_normalsoll_boundary_exact_high(self):
-        r = check_write("3EB001300C", 30)
-        assert r.allowed is True
+        assert "WHITELIST" in r.reason
 
 
 # ---------------------------------------------------------------------------
@@ -228,13 +216,11 @@ class TestUnknownAddresses:
         r = check_write("", 1)
         assert r.allowed is False
 
-    def test_ww_soll_now_whitelisted(self):
-        """WW-Soll ist seit v0.1.5 whitelisted (30..70 °C, F:9)."""
+    def test_ww_soll_no_longer_whitelisted(self):
+        """Seit 2026-05-15 ist WW-Soll wieder geblockt — HD-Schalter-Risiko bei >50 Grad."""
         r = check_write("3EB0023118", 50)
-        assert r.allowed is True
-        # Out-of-range bleibt blockiert
-        assert check_write("3EB0023118", 25).allowed is False
-        assert check_write("3EB0023118", 80).allowed is False
+        assert r.allowed is False
+        assert "WHITELIST" in r.reason
 
 
 # ---------------------------------------------------------------------------
@@ -296,18 +282,20 @@ class TestConstants:
     def test_forbidden_prefixes_contains_3e91(self):
         assert "3E91" in FORBIDDEN_PREFIXES
 
-    def test_whitelist_has_six_entries(self):
-        """Phase 1 (seit v0.1.5): 6 Adressen — F:1 (4) + F:9 (Start, Stop, Soll)."""
-        assert len(WHITELIST) == 6
+    def test_whitelist_has_three_entries(self):
+        """Phase 2 (seit 2026-05-15, User-Regel): 3 Adressen — Betriebsart + WW-Start + WW-Stop."""
+        assert len(WHITELIST) == 3
 
     def test_whitelist_contains_betriebsart(self):
         assert "3E9001301C" in WHITELIST
 
-    def test_whitelist_contains_normalsoll(self):
-        assert "3EB001300C" in WHITELIST
-
-    def test_whitelist_contains_absenksoll(self):
-        assert "3EB001300D" in WHITELIST
-
     def test_whitelist_contains_ww_start(self):
         assert "3E80093125" in WHITELIST
+
+    def test_whitelist_contains_ww_stop(self):
+        assert "3E80093126" in WHITELIST
+
+    def test_whitelist_betriebsart_only_standby_normal(self):
+        """Nur Werte 1 und 3 erlaubt fuer Betriebsart."""
+        entry = WHITELIST["3E9001301C"]
+        assert entry["allowed_values"] == {1, 3}

@@ -176,11 +176,20 @@ class TestSetBetriebsart:
         assert data["dry_run"] is True
 
     @pytest.mark.asyncio
-    async def test_set_betriebsart_all_valid(self, client: AsyncClient):
-        for ba in range(1, 8):
+    async def test_set_betriebsart_only_standby_and_normal_allowed(self, client: AsyncClient):
+        """Seit User-Regel 2026-05-15: nur Werte 1 (Standby) und 3 (Normal) ueber API."""
+        for ba in (1, 3):
             resp = await client.post("/functions/F1/betriebsart", json={"betriebsart": ba})
             assert resp.status_code == 200
             assert resp.json()["success"] is True
+
+    @pytest.mark.asyncio
+    async def test_set_betriebsart_party_blocked(self, client: AsyncClient):
+        """Werte 4,5,6,7 (Abgesenkt/Party/Urlaub/Feiertag) via API blockiert."""
+        resp = await client.post("/functions/F1/betriebsart", json={"betriebsart": 5})
+        # Entweder 422 (Pydantic) oder 200 mit success=False (Safety-Whitelist)
+        if resp.status_code == 200:
+            assert resp.json()["success"] is False
 
     @pytest.mark.asyncio
     async def test_set_betriebsart_invalid_zero(self, client: AsyncClient):
@@ -198,22 +207,24 @@ class TestSetBetriebsart:
         assert resp.json()["address"] == "3E9001301C"
 
 
-class TestSetNormalsoll:
+class TestSollwertEndpointsRemoved:
+    """Seit User-Regel 2026-05-15: normalsoll/absenksoll/wwsoll-Endpoints entfernt.
+    Aenderungen nur ueber CMI/Anlage selbst — WW-Soll disruptiv (HD-Schalter-Risiko)."""
+
     @pytest.mark.asyncio
-    async def test_set_normalsoll_valid(self, client: AsyncClient):
+    async def test_normalsoll_endpoint_removed(self, client: AsyncClient):
         resp = await client.post("/functions/F1/normalsoll", json={"temp": 21.0})
-        assert resp.status_code == 200
-        assert resp.json()["success"] is True
+        assert resp.status_code == 404
 
     @pytest.mark.asyncio
-    async def test_set_normalsoll_too_low_rejected(self, client: AsyncClient):
-        resp = await client.post("/functions/F1/normalsoll", json={"temp": 5.0})
-        assert resp.status_code == 422
+    async def test_absenksoll_endpoint_removed(self, client: AsyncClient):
+        resp = await client.post("/functions/F1/absenksoll", json={"temp": 18.0})
+        assert resp.status_code == 404
 
     @pytest.mark.asyncio
-    async def test_set_normalsoll_too_high_rejected(self, client: AsyncClient):
-        resp = await client.post("/functions/F1/normalsoll", json={"temp": 35.0})
-        assert resp.status_code == 422
+    async def test_wwsoll_endpoint_removed(self, client: AsyncClient):
+        resp = await client.post("/functions/F9/wwsoll", json={"temp": 50.0})
+        assert resp.status_code == 404
 
 
 class TestWWStart:

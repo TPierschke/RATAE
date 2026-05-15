@@ -4,13 +4,19 @@ safety.py — Whitelist-Enforcement fuer CMI-Schreibzugriffe.
 Einzige Stelle im Code die entscheidet ob ein Schreib-Call ans CMI
 erlaubt ist. Keine Ausnahmen. Kein Bypass.
 
-Whitelist (Phase 1):
+Whitelist (Phase 2, gehaertet 2026-05-15):
   F:1 FBHEIZ:
-    3E9001301C  Betriebsart (1=Standby..7=Feiertag)
-    3EB001300C  Normal-Soll (°C)
-    3EB001300D  Absenk-Soll (°C)
+    3E9001301C  Betriebsart — nur {1=Standby, 3=Normal}
+                (Tibber-Heizpause/-Lade Steuerung)
   F:9 WW_ANF.2:
-    3E80093125=1  Verdichter-WW-Boost starten (Legionellenschutz-Trigger)
+    3E80093125=1  WW-Boost starten (Legionellenschutz, Auto-Stop bei 70 Grad)
+    3E80093126=1  WW-Boost stoppen
+
+Bewusst NICHT in Whitelist (User-Regel 2026-05-15):
+  3EB001300C  Normal-Soll  — nur ueber CMI/Anlage selbst
+  3EB001300D  Absenk-Soll  — nur ueber CMI/Anlage selbst
+  3EB0023118  WW-Soll      — disruptiv (HD-Schalter-Risiko bei >50 Grad)
+  Betriebsart-Werte 2,4,5,6,7 (Zeit/Abgesenkt/Party/Urlaub/Feiertag) — manuell nur
 
 Verboten:
   Alle 3E91*-Adressen  (direkte Output-Schalter A1-A10)
@@ -35,38 +41,20 @@ WHITELIST: Final[dict[str, dict]] = {
     "3E9001301C": {
         "name": "FBHEIZ Betriebsart",
         "function": "F:1",
-        "allowed_values": {1, 2, 3, 4, 5, 6, 7},
-        "description": "1=Standby 2=Zeit 3=Normal 4=Abgesenkt 5=Party 6=Urlaub 7=Feiertag",
-    },
-    "3EB001300C": {
-        "name": "FBHEIZ Normal-Soll",
-        "function": "F:1",
-        "value_range": (10, 30),
-        "description": "Raumsoll Normal in Grad C (10..30)",
-    },
-    "3EB001300D": {
-        "name": "FBHEIZ Absenk-Soll",
-        "function": "F:1",
-        "value_range": (5, 25),
-        "description": "Raumsoll Abgesenkt in Grad C (5..25)",
+        "allowed_values": {1, 3},
+        "description": "Nur 1=Standby (Heizpause) und 3=Normal (Heizung an). Andere Modi nur ueber CMI/Anlage.",
     },
     "3E80093125": {
         "name": "WW_ANF.2 STARTEN",
         "function": "F:9",
         "allowed_values": {1},
-        "description": "Verdichter-WW-Boost. 1=starten. Auto-Stop bei 70 Grad.",
+        "description": "Verdichter-WW-Boost / Legionellenschutz. 1=starten. Auto-Stop bei 70 Grad.",
     },
     "3E80093126": {
         "name": "WW_ANF.2 STOPPEN",
         "function": "F:9",
         "allowed_values": {1},
         "description": "Verdichter-WW-Boost manuell stoppen.",
-    },
-    "3EB0023118": {
-        "name": "WW_ANF.2 WW-Soll",
-        "function": "F:9",
-        "value_range": (30, 70),
-        "description": "WW-Soll-Temperatur Legionellenschutz (30..70 Grad C).",
     },
 }
 
