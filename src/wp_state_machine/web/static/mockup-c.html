@@ -223,7 +223,7 @@ select { color:var(--text); background:rgba(255,255,255,.07); outline:none; }
   box-sizing:border-box;
 }
 .seg-pill[aria-checked="true"] {
-  color:var(--text);
+  color:#09160f;  /* dunkler Text auf mint, konsistent mit .on Pillen (Heizkreispumpe AN etc.) */
 }
 .legio-boost {
   width:100%; padding:15px 16px; border-radius:16px; border:1px solid rgba(255,255,255,.1);
@@ -237,7 +237,10 @@ select { color:var(--text); background:rgba(255,255,255,.07); outline:none; }
 .legio-boost[aria-pressed="true"] {
   background:linear-gradient(135deg, var(--mint), var(--cyan) 52%, var(--peach));
   box-shadow:0 16px 34px rgba(184,241,212,.18);
-  color:var(--text);
+  color:#09160f;  /* dunkler Text auf mint-Gradient, konsistent mit aktiven Pillen */
+}
+.legio-boost[aria-pressed="true"] small {
+  color:rgba(9,22,15,.7);  /* gedaempfter dunkler Subtext */
 }
 .legio-dot {
   display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--mint);
