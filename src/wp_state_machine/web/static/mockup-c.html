@@ -202,6 +202,51 @@ button {
   #theme-switcher { max-width:calc(100vw - 16px); }
   #theme-switcher label { display:none; }
 }
+.mode-toggle {
+  display:flex; gap:8px; align-items:center;
+}
+.track {
+  position:relative; width:160px; height:44px; background:rgba(255,255,255,.06); border-radius:999px;
+  border:1px solid rgba(255,255,255,.1); padding:4px;
+}
+.seg-pill {
+  position:relative; z-index:2; flex:1; height:36px; border-radius:999px; border:none; outline:none;
+  cursor:pointer; font:600 13px/1 Inter,Geist,sans-serif; letter-spacing:.06em; text-transform:uppercase;
+  color:rgba(255,255,255,.5); background:transparent; transition:color .24s ease; padding:0;
+}
+.seg-pill[aria-checked="true"] {
+  color:var(--text);
+}
+.mode-toggle::before {
+  content:""; position:absolute; left:4px; top:4px; width:calc(50% - 4px); height:36px;
+  background:linear-gradient(135deg, #80ffd5, #80ffd5); border-radius:999px;
+  box-shadow:0 0 16px rgba(128,255,213,.36), inset 0 1px 2px rgba(255,255,255,.2);
+  transition:left .24s ease; z-index:1;
+}
+.mode-toggle.is-normal::before {
+  left:calc(50% + 4px);
+}
+.legio-boost {
+  width:100%; padding:15px 16px; border-radius:16px; border:1px solid rgba(255,255,255,.1);
+  background:rgba(255,255,255,.07); color:#13202d; font:600 14px/1 Inter,Geist,sans-serif;
+  cursor:pointer; text-align:left; transition:background .24s ease, box-shadow .24s ease;
+  display:flex; align-items:center; gap:12px;
+}
+.legio-boost[aria-pressed="true"] {
+  background:linear-gradient(135deg, var(--mint), var(--cyan) 52%, var(--peach));
+  box-shadow:0 16px 34px rgba(184,241,212,.18);
+}
+.legio-dot {
+  display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--mint);
+  box-shadow:0 0 8px rgba(184,241,212,.6); opacity:0;
+}
+.legio-boost[aria-pressed="true"] .legio-dot {
+  opacity:1; animation:legio-pulse 1.2s ease-in-out infinite;
+}
+@keyframes legio-pulse {
+  0%, 100% { opacity:1; box-shadow:0 0 8px rgba(184,241,212,.6); }
+  50% { opacity:.4; box-shadow:0 0 4px rgba(184,241,212,.3); }
+}
 </style>
 </head>
 <body>
@@ -504,15 +549,21 @@ button {
             <div class="pill" style="padding:8px 12px;color:#ffe3d2;"><span style="color:var(--peach);">●</span> bereit</div>
           </div>
           <div>
-            <label class="label" for="mode" style="display:block; margin-bottom:8px;">Betriebsart</label>
-            <select id="mode" aria-label="Betriebsart">
-              <option selected>Normal</option>
-              <option>Eco</option>
-              <option>Boost</option>
-              <option>Service</option>
-            </select>
+            <label class="label" style="display:block; margin-bottom:12px;">Betriebsart</label>
+            <div class="mode-toggle" data-mode-toggle>
+              <div class="track">
+                <button class="seg-pill" data-mode="standby" aria-checked="false">Standby</button>
+                <button class="seg-pill" data-mode="normal" aria-checked="true">Normal</button>
+              </div>
+            </div>
           </div>
-          <button type="button">Legionellenschutz starten</button>
+          <button class="legio-boost" type="button" aria-pressed="false">
+            <span class="legio-dot"></span>
+            <div style="flex:1;">
+              <strong>Legionellenschutz starten</strong>
+              <small style="display:block; color:rgba(255,255,255,.5); font-size:11px; font-weight:400; margin-top:2px;">Auto-Stop bei 70 Grad</small>
+            </div>
+          </button>
         </div>
       </article>
     </section>
@@ -607,6 +658,45 @@ button {
   })();
 </script>
 <!-- /tab-toggle -->
+
+<script>
+(function() {
+  var toggle = document.querySelector('[data-mode-toggle]');
+  if (toggle) {
+    var pills = Array.prototype.slice.call(toggle.querySelectorAll('.seg-pill'));
+    function setMode(nextMode) {
+      toggle.classList.toggle('is-normal', nextMode === 'normal');
+      pills.forEach(function(el) {
+        el.setAttribute('aria-checked', String(el.dataset.mode === nextMode));
+      });
+    }
+    pills.forEach(function(el) {
+      el.addEventListener('click', function() {
+        setMode(el.dataset.mode);
+      });
+    });
+    var active = pills.find(function(el) {
+      return el.getAttribute('aria-checked') === 'true';
+    });
+    setMode(active ? active.dataset.mode : 'normal');
+  }
+
+  var boost = document.querySelector('.legio-boost');
+  if (boost) {
+    var title = boost.querySelector('strong');
+    var meta = boost.querySelector('small');
+    function renderBoost(active) {
+      boost.setAttribute('aria-pressed', String(active));
+      if (title) title.textContent = active ? 'Legionellenschutz aktiv' : 'Legionellenschutz starten';
+      if (meta) meta.textContent = active ? 'Boost laeuft noch 2:18 h' : 'Auto-Stop bei 70 Grad';
+    }
+    boost.addEventListener('click', function() {
+      renderBoost(boost.getAttribute('aria-pressed') !== 'true');
+    });
+    renderBoost(boost.getAttribute('aria-pressed') === 'true');
+  }
+})();
+</script>
 
 <script src="/ui/live-bindings.js"></script>
 </body>
