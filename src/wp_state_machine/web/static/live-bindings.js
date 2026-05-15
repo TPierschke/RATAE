@@ -32,6 +32,19 @@
       samples: [], lastEta: null, lastEtaT: 0,
       defaultRate: 0.4,      // deg/min, legio takes longer due to higher target temp
       lsKey: 'wpsm.rate.legio'
+    },
+    // Cooldown trackers — used in BEREIT state to estimate when the next
+    // demand kicks in (WW falls below EIN threshold, puffer below verdichter-EIN).
+    // Rate is the |negative slope| of cooldown (deg/min absolute value).
+    ww_cool: {
+      samples: [], lastEta: null, lastEtaT: 0,
+      defaultRate: 0.02,     // deg/min, typical WW standing loss ~1.2 K/h
+      lsKey: 'wpsm.rate.ww_cool'
+    },
+    heat_cool: {
+      samples: [], lastEta: null, lastEtaT: 0,
+      defaultRate: 0.04,     // deg/min, typical 200L puffer cooldown ~2-3 K/h
+      lsKey: 'wpsm.rate.heat_cool'
     }
   };
 
@@ -92,6 +105,46 @@
       return { eta: Math.round(fallbackEta), status: 'estimate' };
     }
     return { eta: null, status: 'warming' };
+  }
+
+  // Cooldown-ETA: temperature is falling, predict when it reaches a lower threshold.
+  // diffToTrigger = current - trigger_value  (positive while we're still above).
+  function calcEtaCool(mode, diffToTrigger) {
+    var t = trackers[mode];
+    var now = Date.now();
+    var s = t.samples;
+    if (s.length >= 2) {
+      var first = s[0];
+      var last = s[s.length - 1];
+      var dtMin = (last.t - first.t) / 60000;
+      var dv = first.v - last.v;  // positive = cooling
+      if (dtMin >= 0.25 && dv > 0.01) {
+        var rate = dv / dtMin;
+        var etaMin = diffToTrigger / rate;
+        if (etaMin > 0 && etaMin <= 24 * 60) {
+          t.lastEta = Math.round(etaMin);
+          t.lastEtaT = now;
+          storeRate(mode, rate);
+          return { eta: t.lastEta, status: 'ok' };
+        }
+      }
+    }
+    if (t.lastEta !== null && now - t.lastEtaT < ETA_STICKY_MS) {
+      return { eta: t.lastEta, status: 'sticky' };
+    }
+    var fallback = loadStoredRate(mode);
+    var fallbackEta = diffToTrigger / fallback;
+    if (fallbackEta > 0 && fallbackEta <= 24 * 60) {
+      return { eta: Math.round(fallbackEta), status: 'estimate' };
+    }
+    return { eta: null, status: 'warming' };
+  }
+
+  function formatEtaHours(minutes) {
+    if (minutes == null) return null;
+    if (minutes < 90) return Math.round(minutes) + ' min';
+    var h = minutes / 60;
+    return (h < 10 ? h.toFixed(1) : Math.round(h)) + ' h';
   }
 
   function resetTrackersExcept(activeMode) {
@@ -325,8 +378,41 @@
     resetTrackersExcept(activeMode);
 
     switch (rawState) {
-      case 'BEREIT':
-        return 'Anlage in Bereitschaft';
+      case 'BEREIT': {
+        // Show ETA of next demand: WW always, Heizung only if betriebsart != Standby.
+        // Cooldown trackers grow samples in this branch so live rate replaces default.
+        var parts = [];
+        var spB = state.setpoints || {};
+        var wwSollB = typeof spB.ww_soll_normal === 'number' ? spB.ww_soll_normal : 49;
+        var wwEinSchwelle = wwSollB - 4;  // F:2 DIFF.EIN = -4K
+        var wwB = typeof state.warmwasser === 'number' ? state.warmwasser : null;
+        if (wwB !== null) {
+          trackSample('ww_cool', wwB);
+          var diffWwB = wwB - wwEinSchwelle;
+          if (diffWwB > 0.1) {
+            var etaWw = calcEtaCool('ww_cool', diffWwB);
+            var f = formatEtaHours(etaWw.eta);
+            if (f) parts.push('WW in ca. ' + f);
+          }
+        }
+        // Heizung-ETA nur wenn Betriebsart != Standby (=1)
+        var betr = state.betriebsart;
+        if (betr !== 1 && betr !== '1' && betr !== 'STANDBY') {
+          var vlIst = typeof state.vorlauf === 'number' ? state.vorlauf : null;
+          var vlSollB = typeof state.vorlauf_soll === 'number' ? state.vorlauf_soll : null;
+          if (vlIst !== null && vlSollB !== null) {
+            trackSample('heat_cool', vlIst);
+            var heatEinSchwelle = vlSollB - 3;  // F:8 HZ_ANF DIFF.EIN = -3K
+            var diffHeatB = vlIst - heatEinSchwelle;
+            if (diffHeatB > 0.1) {
+              var etaHeat = calcEtaCool('heat_cool', diffHeatB);
+              var fh = formatEtaHours(etaHeat.eta);
+              if (fh) parts.push('Heizung in ~' + fh);
+            }
+          }
+        }
+        return parts.length > 0 ? parts.join(' · ') : 'Anlage in Bereitschaft';
+      }
       case 'HEIZUNG': {
         // UVR hysteresis: HP switches OFF when return >= flow setpoint + 4K
         // (the 4K span sits ABOVE the setpoint). Source: user correction 2026-05-09.
