@@ -197,6 +197,11 @@ class TelemetryRecord(BaseModel):
     absenk_soll: Optional[float] = None
     raum_ist: Optional[float] = None
     ww_soll_normal: Optional[float] = None
+    # Forecast minutes until next demand (only set during BEREIT state).
+    # Comparing these vs. actual time-to-next-demand later allows tuning of the
+    # cooldown-rate defaults used by frontend + snapshot_logger.
+    ww_eta_min: Optional[float] = None
+    heat_eta_min: Optional[float] = None
     ww_soll_legio: Optional[float] = None
     ww_ist: Optional[float] = None
 
