@@ -67,6 +67,8 @@ _TELEMETRY_COLUMNS: tuple[tuple[str, str], ...] = (
     ("ww_soll_normal", "ww_soll_normal"),
     ("ww_soll_legio", "ww_soll_legio"),
     ("ww_ist", "ww_ist"),
+    ("ww_eta_min", "ww_eta_min"),
+    ("heat_eta_min", "heat_eta_min"),
 )
 
 _TELEMETRY_INSERT_SQL = (
