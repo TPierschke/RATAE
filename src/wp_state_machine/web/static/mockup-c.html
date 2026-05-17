@@ -698,13 +698,31 @@ select { color:var(--text); background:rgba(255,255,255,.07); outline:none; }
     }
     pills.forEach(function(el) {
       el.addEventListener('click', function() {
-        setMode(el.dataset.mode);
+        var nextMode = el.dataset.mode;
+        var val = nextMode === 'standby' ? 1 : 3;
+        el.disabled = true;
+        fetch('/functions/F1/betriebsart', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({value: val})
+        })
+          .then(function(r) { return r.json(); })
+          .then(function(d) {
+            if (d && d.success) setMode(nextMode);
+            else console.warn('Betriebsart fehlgeschlagen', d);
+          })
+          .catch(function(e) { console.error('Betriebsart Fehler', e); })
+          .finally(function() { el.disabled = false; });
       });
     });
-    var active = pills.find(function(el) {
-      return el.getAttribute('aria-checked') === 'true';
-    });
-    setMode(active ? active.dataset.mode : 'normal');
+    // Derive initial state from RATAE betriebsart (1=Standby, 3=Normal)
+    fetch('/state', { cache: 'no-store' })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var ba = d && d.sensoren && d.sensoren.betriebsart;
+        setMode(ba === 1 ? 'standby' : 'normal');
+      })
+      .catch(function() { setMode('normal'); });
   }
 
   var boost = document.querySelector('.legio-boost');
@@ -746,6 +764,6 @@ select { color:var(--text); background:rgba(255,255,255,.07); outline:none; }
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
   window.addEventListener('load', function() { window.scrollTo(0, 0); });
 </script>
-<script src="/ui/live-bindings.js?v=20260517-legio"></script>
+<script src="/ui/live-bindings.js?v=20260517-betriebsart"></script>
 </body>
 </html>
