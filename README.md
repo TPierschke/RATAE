@@ -121,6 +121,14 @@ ruecklauf = 0.0
 
 ---
 
+## Web-UI
+
+Die UI liegt unter `src/wp_state_machine/web/static/mockup-c.html` und nutzt das **Glass Future**-Design (Mint #80ffd5 + Peach #ffe3d2).
+
+> **Hinweis:** Alle anderen Design-Varianten (`mockup-a.html`, `mockup-b.html`, UI-Mockup-Controls-v2.html etc.) sind reine Entwurfs-Mockups ohne Live-Funktionalität. Nur `mockup-c.html` (Glass Future) ist produktiv verdrahtet.
+
+---
+
 ## API-Endpunkte
 
 ### Read-Only
