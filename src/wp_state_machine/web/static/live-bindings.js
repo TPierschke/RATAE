@@ -598,9 +598,16 @@
         if (!data) return;
         lastGoodState = normalizeState(data);
         applyState(lastGoodState);
+        applyDryRunBanner(data);
         triggerHeartbeat();
       })
       .catch(function () {});
+  }
+
+  function applyDryRunBanner(data) {
+    var banner = document.getElementById('dry-run-banner');
+    if (!banner) return;
+    banner.style.display = data && data.dry_run ? '' : 'none';
   }
 
   /** Open an EventSource on /events/state and apply each pushed state update. */
@@ -612,6 +619,7 @@
         var data = JSON.parse(evt.data);
         lastGoodState = normalizeState(data);
         applyState(lastGoodState);
+        applyDryRunBanner(data);
         triggerHeartbeat();
       } catch (e) {
         // Malformed JSON — keep last good state, do nothing

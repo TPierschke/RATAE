@@ -22,6 +22,7 @@ from typing import Any, Optional
 log = logging.getLogger(__name__)
 
 DEFAULT_INTERVAL = 300  # 5 minutes
+_HEIZSTAB_INTERVAL = 86400  # fetch operating hours once per day
 
 
 async def setpoints_loop(app_state, config: Optional[Any] = None, interval: int = DEFAULT_INTERVAL) -> None:
@@ -37,6 +38,7 @@ async def setpoints_loop(app_state, config: Optional[Any] = None, interval: int 
         interval: polling interval in seconds (default 300 = 5 min)
     """
     log.info("setpoints_logger started: function setpoints every %ds", interval)
+    _last_heizstab: float = 0.0
 
     while True:
         try:
@@ -49,6 +51,9 @@ async def setpoints_loop(app_state, config: Optional[Any] = None, interval: int 
                 timeout = aiohttp.ClientTimeout(total=config.cmi_timeout)
 
                 try:
+                    import time
+                    from wp_state_machine.ingest.web_scraper import parse_heizstab_page
+                    _fetch_heizstab = (time.monotonic() - _last_heizstab) >= _HEIZSTAB_INTERVAL
                     async with aiohttp.ClientSession(auth=auth, timeout=timeout) as session:
                         url = config.cmi_menupage_url("3E01581E")
                         async with session.get(url) as resp:
@@ -81,6 +86,21 @@ async def setpoints_loop(app_state, config: Optional[Any] = None, interval: int 
                                     log.warning("setpoints_logger: no setpoints found in 3E01581E")
                             else:
                                 log.warning("setpoints_logger: CMI HTTP %d", resp.status)
+
+                        if _fetch_heizstab:
+                            await asyncio.sleep(config.cmi_min_request_interval)
+                            async with session.get(config.cmi_menupage_url("3E06580E")) as r:
+                                hz_h = parse_heizstab_page(await r.text()) if r.status == 200 else None
+                            await asyncio.sleep(config.cmi_min_request_interval)
+                            async with session.get(config.cmi_menupage_url("3E07580E")) as r:
+                                ww_h = parse_heizstab_page(await r.text()) if r.status == 200 else None
+                            if hz_h is not None and hasattr(app_state, "sensoren") and app_state.sensoren:
+                                app_state.sensoren.betr_std_heizstab_fb = hz_h
+                            if ww_h is not None and hasattr(app_state, "sensoren") and app_state.sensoren:
+                                app_state.sensoren.betr_std_heizstab_ww = ww_h
+                            _last_heizstab = time.monotonic()
+                            log.info("Heizstab-Stunden aktualisiert: HZ=%s h, WW=%s h", hz_h, ww_h)
+
                 except Exception as exc:
                     log.warning("setpoints_logger: live crawl failed: %s, using fallbacks", exc)
                     # Fallback: apply default values.

@@ -59,6 +59,7 @@ async def scrape_once(config: Config, app_state) -> dict:
     from wp_state_machine.ingest.web_scraper import (
         parse_outputs_page,
         parse_functions_overview,
+        parse_heizstab_page,
         merge_scrape_results,
     )
 
@@ -66,6 +67,8 @@ async def scrape_once(config: Config, app_state) -> dict:
     timeout = aiohttp.ClientTimeout(total=config.cmi_timeout)
     outputs_html = ""
     functions_html = ""
+    heizstab_hz_html = ""
+    heizstab_ww_html = ""
 
     async with aiohttp.ClientSession(auth=auth, timeout=timeout) as session:
         url_outputs = config.cmi_menupage_url("3E005806")
@@ -84,9 +87,27 @@ async def scrape_once(config: Config, app_state) -> dict:
             else:
                 log.warning("CMI Functions-Page: HTTP %d", resp.status)
 
+        await asyncio.sleep(config.cmi_min_request_interval)
+
+        async with session.get(config.cmi_menupage_url("3E06580E")) as resp:
+            if resp.status == 200:
+                heizstab_hz_html = await resp.text()
+            else:
+                log.warning("CMI Heizstab-HZ-Page: HTTP %d", resp.status)
+
+        await asyncio.sleep(config.cmi_min_request_interval)
+
+        async with session.get(config.cmi_menupage_url("3E07580E")) as resp:
+            if resp.status == 200:
+                heizstab_ww_html = await resp.text()
+            else:
+                log.warning("CMI Heizstab-WW-Page: HTTP %d", resp.status)
+
     outputs = parse_outputs_page(outputs_html) if outputs_html else {}
     functions = parse_functions_overview(functions_html) if functions_html else {}
-    merged = merge_scrape_results(outputs, functions)
+    hz_h = parse_heizstab_page(heizstab_hz_html) if heizstab_hz_html else None
+    ww_h = parse_heizstab_page(heizstab_ww_html) if heizstab_ww_html else None
+    merged = merge_scrape_results(outputs, functions, heizstab_hz_h=hz_h, heizstab_ww_h=ww_h)
 
     sensoren = Sensoren(
         aussen=merged.get("aussen"),
@@ -100,6 +121,8 @@ async def scrape_once(config: Config, app_state) -> dict:
         heizstab_ww=merged.get("heizstab_ww"),
         alarm=merged.get("alarm"),
         betriebsart=Betriebsart(merged["betriebsart"]) if merged.get("betriebsart") else None,
+        betr_std_heizstab_fb=merged.get("betr_std_heizstab_fb"),
+        betr_std_heizstab_ww=merged.get("betr_std_heizstab_ww"),
         source="web_scraper",
     )
     await app_state.update_sensoren(sensoren)

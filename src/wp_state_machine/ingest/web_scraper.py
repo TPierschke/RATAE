@@ -9,6 +9,8 @@ Pages:
   3E005806  Ausgaenge-Zustand    (A1-A10 EIN/AUS/AUTO)
   3E005804  Messwerteuebersicht  (Temperaturen kompakt)
   3E01580E  FBHEIZ Detail        (Betriebsart, Sollwerte)
+  3E06580E  F:6 Zaehler Heizstab HZ (Betriebsstunden Heizstab FBH)
+  3E07580E  F:7 Zaehler Heizstab WW (Betriebsstunden Heizstab WW)
 
 Parsing: BeautifulSoup4 + regex auf text-content.
 
@@ -270,6 +272,41 @@ def parse_fbheiz_detail(html: str) -> dict[str, object]:
 
 
 # ---------------------------------------------------------------------------
+# Pages 3E06580E + 3E07580E — Betriebsstundenzaehler Heizstaebe (F:6, F:7)
+# ---------------------------------------------------------------------------
+
+_BETRIEBS_HR_RE = re.compile(r"Betriebsdauer[:\s]*\n?\s*(\d+)\s*hr", re.I)
+
+
+def parse_heizstab_page(html: str) -> Optional[int]:
+    """
+    Parst eine BETRSTDZ-Seite (F:6 oder F:7).
+    Liefert Betriebsdauer in Stunden (int) oder None.
+
+    HTML-Muster:
+        Betriebsdauer:
+                    71 hr
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    text = soup.get_text(separator="\n")
+    m = _BETRIEBS_HR_RE.search(text)
+    if m:
+        try:
+            return int(m.group(1))
+        except ValueError:
+            pass
+    # Fallback: find "Betriebsdauer:" line, next non-empty line with digits + hr
+    lines = [l.strip() for l in text.splitlines()]
+    for i, line in enumerate(lines):
+        if "betriebsdauer" in line.lower():
+            for j in range(i + 1, min(i + 4, len(lines))):
+                nm = re.match(r"^(\d+)\s*hr", lines[j], re.I)
+                if nm:
+                    return int(nm.group(1))
+    return None
+
+
+# ---------------------------------------------------------------------------
 # Zusammenfassender Parser — alle relevanten Pages
 # ---------------------------------------------------------------------------
 
@@ -277,15 +314,21 @@ def parse_fbheiz_detail(html: str) -> dict[str, object]:
 def merge_scrape_results(
     outputs: dict,
     functions: dict,
+    heizstab_hz_h: Optional[int] = None,
+    heizstab_ww_h: Optional[int] = None,
 ) -> dict[str, object]:
     """
-    Merged Outputs-Page + Functions-Overview in ein gemeinsames dict.
+    Merged Outputs-Page + Functions-Overview + Heizstab-Zaehler in ein gemeinsames dict.
     Functions-Werte ueberschreiben Outputs-Werte bei Konflikten.
     Extrahiert zusaetzlich ein 'setpoints' sub-dict mit Sollwerten.
     """
     merged = {}
     merged.update(outputs)
     merged.update(functions)
+    if heizstab_hz_h is not None:
+        merged["betr_std_heizstab_fb"] = heizstab_hz_h
+    if heizstab_ww_h is not None:
+        merged["betr_std_heizstab_ww"] = heizstab_ww_h
 
     # Extrahiere Setpoints als sub-dict fuer app_state.setpoints
     setpoints = {}

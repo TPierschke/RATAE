@@ -491,7 +491,7 @@ select { color:var(--text); background:rgba(255,255,255,.07); outline:none; }
 
 <main class="shell">
   <section id="tab-dashboard">
-    <section class="banner glass">DRY-RUN aktiv</section>
+    <section id="dry-run-banner" class="banner glass" style="display:none">DRY-RUN aktiv</section>
 
     <header class="header glass">
       <div class="brand">
@@ -714,12 +714,29 @@ select { color:var(--text); background:rgba(255,255,255,.07); outline:none; }
     function renderBoost(active) {
       boost.setAttribute('aria-pressed', String(active));
       if (title) title.textContent = active ? 'Legionellenschutz aktiv' : 'Legionellenschutz starten';
-      if (meta) meta.textContent = active ? 'Boost laeuft noch 2:18 h' : 'Auto-Stop bei 70 Grad';
+      if (meta) meta.textContent = active ? 'Boost laeuft — Stop bei 70°' : 'Auto-Stop bei 70°';
     }
     boost.addEventListener('click', function() {
-      renderBoost(boost.getAttribute('aria-pressed') !== 'true');
+      var next = boost.getAttribute('aria-pressed') !== 'true';
+      var url = next ? '/functions/F9/start' : '/functions/F9/stop';
+      boost.disabled = true;
+      fetch(url, { method: 'POST' })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          if (d && d.success) renderBoost(next);
+          else console.warn('Legio-Boost fehlgeschlagen', d);
+        })
+        .catch(function(e) { console.error('Legio-Boost Fehler', e); })
+        .finally(function() { boost.disabled = false; });
     });
-    renderBoost(boost.getAttribute('aria-pressed') === 'true');
+    // Derive initial state from RATAE: active if heizstab_ww running
+    fetch('/state', { cache: 'no-store' })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var active = !!(d && d.sensoren && d.sensoren.heizstab_ww);
+        renderBoost(active);
+      })
+      .catch(function() { renderBoost(false); });
   }
 })();
 </script>
@@ -729,6 +746,6 @@ select { color:var(--text); background:rgba(255,255,255,.07); outline:none; }
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
   window.addEventListener('load', function() { window.scrollTo(0, 0); });
 </script>
-<script src="/ui/live-bindings.js?v=20260515-eta"></script>
+<script src="/ui/live-bindings.js?v=20260517-legio"></script>
 </body>
 </html>
